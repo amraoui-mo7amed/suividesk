@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <title>{{ report_title }}</title>
+  <style>
+    @page {
+      size: A4 landscape;
+      margin: 15mm 15mm 20mm 15mm;
+      @bottom-left {
+        content: "SuiviDesk • Caisse Nationale des Assurances Sociales (CNAS)";
+        font-size: 8pt;
+        color: #718096;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      }
+      @bottom-right {
+        content: "Page " counter(page) " sur " counter(pages);
+        font-size: 8pt;
+        font-weight: bold;
+        color: #0055A5;
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      }
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      color: #1a202c;
+      margin: 0;
+      padding: 0;
+      font-size: 9.5pt;
+      line-height: 1.4;
+    }
+
+    /* CNAS Header */
+    .header-table {
+      width: 100%;
+      border-bottom: 2.5px solid #0055A5;
+      padding-bottom: 12px;
+      margin-bottom: 16px;
+    }
+    .header-logo {
+      width: 260px;
+      vertical-align: middle;
+    }
+    .header-info {
+      text-align: right;
+      vertical-align: middle;
+    }
+    .header-title {
+      font-size: 16pt;
+      font-weight: 800;
+      color: #0055A5;
+      margin: 0 0 4px 0;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+    .header-subtitle {
+      font-size: 9pt;
+      color: #4a5568;
+      margin: 0;
+    }
+    .header-meta {
+      font-size: 8pt;
+      color: #718096;
+      margin-top: 4px;
+    }
+
+    /* KPI Summary Cards */
+    .kpi-row {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 18px;
+    }
+    .kpi-card {
+      flex: 1;
+      background: #f7fafc;
+      border: 1px solid #e2e8f0;
+      border-radius: 6px;
+      padding: 8px 12px;
+      border-top: 3.5px solid #0055A5;
+    }
+    .kpi-card.warning {
+      border-top-color: #d97706;
+      background: #fffbeb;
+    }
+    .kpi-card.danger {
+      border-top-color: #dc2626;
+      background: #fef2f2;
+    }
+    .kpi-card.success {
+      border-top-color: #16a34a;
+      background: #f0fdf4;
+    }
+    .kpi-label {
+      font-size: 7.5pt;
+      text-transform: uppercase;
+      font-weight: 700;
+      color: #4b5563;
+      margin-bottom: 2px;
+    }
+    .kpi-value {
+      font-size: 16pt;
+      font-weight: 800;
+      color: #111827;
+    }
+
+    /* Filter Context */
+    .filter-summary {
+      background: #f1f5f9;
+      border-left: 3px solid #00A3E0;
+      padding: 6px 12px;
+      font-size: 8pt;
+      color: #334155;
+      margin-bottom: 14px;
+      border-radius: 0 4px 4px 0;
+    }
+
+    /* Tasks Table */
+    table.data-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 8px;
+    }
+    table.data-table th {
+      background-color: #0055A5;
+      color: #ffffff;
+      font-weight: 700;
+      text-align: left;
+      padding: 7px 8px;
+      font-size: 8pt;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+      border: 1px solid #004b91;
+    }
+    table.data-table td {
+      padding: 6px 8px;
+      border: 1px solid #e2e8f0;
+      font-size: 8pt;
+      vertical-align: middle;
+    }
+    table.data-table tr:nth-child(even) {
+      background-color: #f8fafc;
+    }
+    table.data-table tr.highlight-j3 {
+      background-color: #fffbeb !important;
+    }
+    table.data-table tr.highlight-overdue {
+      background-color: #fef2f2 !important;
+    }
+
+    /* Status and Alert Badges */
+    .badge {
+      display: inline-block;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-size: 7pt;
+      font-weight: 700;
+      text-align: center;
+      white-space: nowrap;
+    }
+    .badge-urgent {
+      background: #fecaca;
+      color: #991b1b;
+      border: 1px solid #f87171;
+    }
+    .badge-haute {
+      background: #ffedd5;
+      color: #9a3412;
+      border: 1px solid #fb923c;
+    }
+    .badge-moyenne {
+      background: #e0f2fe;
+      color: #0369a1;
+      border: 1px solid #38bdf8;
+    }
+    .badge-basse {
+      background: #f1f5f9;
+      color: #475569;
+      border: 1px solid #cbd5e1;
+    }
+
+    .alert-j3 {
+      background: #fef3c7;
+      color: #92400e;
+      border: 1px solid #f59e0b;
+      font-weight: 800;
+    }
+    .alert-overdue {
+      background: #fee2e2;
+      color: #b91c1c;
+      border: 1px solid #ef4444;
+      font-weight: 800;
+    }
+    .alert-ok {
+      background: #e0f2fe;
+      color: #0284c7;
+    }
+
+    .badge-terminee {
+      background: #dcfce7;
+      color: #166534;
+      border: 1px solid #86efac;
+    }
+    .badge-cours {
+      background: #dbeafe;
+      color: #1e40af;
+      border: 1px solid #93c5fd;
+    }
+    .badge-attente {
+      background: #f3f4f6;
+      color: #374151;
+      border: 1px solid #d1d5db;
+    }
+    .badge-bloquee {
+      background: #fce7f3;
+      color: #9d174d;
+      border: 1px solid #f472b6;
+    }
+
+    .matricule {
+      font-family: monospace;
+      font-size: 7.5pt;
+      color: #4b5563;
+    }
+
+    .progress-bar-bg {
+      background: #e2e8f0;
+      border-radius: 3px;
+      height: 6px;
+      width: 60px;
+      display: inline-block;
+      overflow: hidden;
+      vertical-align: middle;
+      margin-right: 4px;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      background: #0055A5;
+      border-radius: 3px;
+    }
+
+    .footer-signature {
+      margin-top: 25px;
+      width: 100%;
+    }
+    .signature-box {
+      width: 250px;
+      float: right;
+      text-align: center;
+      border-top: 1px solid #4b5563;
+      padding-top: 5px;
+      font-size: 8pt;
+      font-weight: bold;
+      color: #374151;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Header -->
+  <table class="header-table">
+    <tr>
+      <td class="header-logo">
+        {% if logo_base64 %}
+          <img src="data:image/svg+xml;base64,{{ logo_base64 }}" style="height: 48px;" alt="Logo CNAS" />
+        {% else %}
+          <div style="font-size: 22pt; font-weight: 900; color: #0055A5; letter-spacing: 1px;">
+            CNAS <span style="font-size: 11pt; color: #00A3E0; font-weight: normal;">| SuiviDesk</span>
+          </div>
+        {% endif %}
+      </td>
+      <td class="header-info">
+        <h1 class="header-title">{{ report_title }}</h1>
+        <p class="header-subtitle">Direction du Contrôle et de la Gestion des Activités</p>
+        <div class="header-meta">Édité le {{ generation_date }} • Par : {{ generated_by }}</div>
+      </td>
+    </tr>
+  </table>
+
+  <!-- Filter Context Summary -->
+  <div class="filter-summary">
+    <strong>Périmètre du rapport :</strong> {{ filter_summary }} • <strong>Total fiches exportées :</strong> {{ tasks|length }}
+  </div>
+
+  <!-- KPI Overview -->
+  <div class="kpi-row">
+    <div class="kpi-card">
+      <div class="kpi-label">Total Tâches</div>
+      <div class="kpi-value">{{ stats.total }}</div>
+    </div>
+    <div class="kpi-card warning">
+      <div class="kpi-label">🟡 Alertes J-3 Proches</div>
+      <div class="kpi-value">{{ stats.approaching }}</div>
+    </div>
+    <div class="kpi-card danger">
+      <div class="kpi-label">🔴 Échéances Dépassées</div>
+      <div class="kpi-value">{{ stats.overdue }}</div>
+    </div>
+    <div class="kpi-card">
+      <div class="kpi-label">En Cours d'Exécution</div>
+      <div class="kpi-value">{{ stats.in_progress }}</div>
+    </div>
+    <div class="kpi-card success">
+      <div class="kpi-label">Taux d'Achèvement</div>
+      <div class="kpi-value">{{ stats.completion_rate }}%</div>
+    </div>
+  </div>
+
+  <!-- Main Tasks Table -->
+  <table class="data-table">
+    <thead>
+      <tr>
+        <th style="width: 8%;">Réf. Dossier</th>
+        <th style="width: 25%;">Intitulé de la Tâche & Pôle</th>
+        <th style="width: 17%;">Collaborateur Assigné</th>
+        <th style="width: 8%;">Priorité</th>
+        <th style="width: 10%;">Statut</th>
+        <th style="width: 14%;">Échéance & Suivi</th>
+        <th style="width: 10%;">Alerte Proactive</th>
+        <th style="width: 8%;">Avancée</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for task in tasks %}
+      <tr class="{% if task.alert_level == 'j-3' %}highlight-j3{% elif task.alert_level == 'overdue' %}highlight-overdue{% endif %}">
+        <td class="matricule"><strong>{{ task.reference_dossier or '—' }}</strong></td>
+        <td>
+          <div style="font-weight: 700; color: #0055A5;">{{ task.titre }}</div>
+          <div style="font-size: 7pt; color: #64748b;">Service : {{ task.service }}</div>
+        </td>
+        <td>
+          <div style="font-weight: 600;">{{ task.agent_prenom }} {{ task.agent_nom }}</div>
+          <div class="matricule">{{ task.agent_matricule }} • {{ task.agent_service }}</div>
+        </td>
+        <td>
+          <span class="badge badge-{{ task.priorite|lower }}">{{ task.priorite }}</span>
+        </td>
+        <td>
+          {% if task.statut == 'Terminée' %}
+            <span class="badge badge-terminee">Terminée</span>
+          {% elif task.statut == 'En cours' %}
+            <span class="badge badge-cours">En cours</span>
+          {% elif task.statut == 'Bloquée' %}
+            <span class="badge badge-bloquee">Bloquée</span>
+          {% else %}
+            <span class="badge badge-attente">En attente</span>
+          {% endif %}
+        </td>
+        <td>
+          <div style="font-weight: 600;">{{ task.date_echeance_fr }}</div>
+          <div style="font-size: 7pt; color: #64748b;">Début : {{ task.date_debut_fr }}</div>
+        </td>
+        <td>
+          {% if task.alert_level == 'overdue' %}
+            <span class="badge alert-overdue">🔴 Retard : {{ task.delay_text }}</span>
+          {% elif task.alert_level == 'j-3' %}
+            <span class="badge alert-j3">🟡 {{ task.delay_text }}</span>
+          {% elif task.statut == 'Terminée' %}
+            <span class="badge badge-terminee">✓ Réalisée</span>
+          {% else %}
+            <span class="badge alert-ok">🔵 Dans les délais</span>
+          {% endif %}
+        </td>
+        <td>
+          <div class="progress-bar-bg">
+            <div class="progress-bar-fill" style="width: {{ task.progression }}%;"></div>
+          </div>
+          <span style="font-weight: 700; font-size: 7.5pt;">{{ task.progression }}%</span>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+
+  <!-- Signature Section -->
+  <div class="footer-signature">
+    <div class="signature-box">
+      Direction CNAS • Visa & Approbation
+      <br><br><br>
+      Cachet et Signature
+    </div>
+  </div>
+
+</body>
+</html>

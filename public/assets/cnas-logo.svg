@@ -1,0 +1,54 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 500 130" width="100%" height="100%">
+  <defs>
+    <linearGradient id="cnasGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0072CE" />
+      <stop offset="50%" stop-color="#0055A5" />
+      <stop offset="100%" stop-color="#002D62" />
+    </linearGradient>
+    <linearGradient id="cyanAccent" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#00d2ff" />
+      <stop offset="100%" stop-color="#00A3E0" />
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="3" result="blur" />
+      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+    </filter>
+  </defs>
+
+  <!-- Emblem Background Hexagon / Shield -->
+  <g transform="translate(10, 15)">
+    <!-- Protective Outer Crest -->
+    <path d="M 50,5 L 85,25 L 85,68 L 50,92 L 15,68 L 15,25 Z" 
+          fill="url(#cnasGrad)" 
+          stroke="url(#cyanAccent)" 
+          stroke-width="2.5" 
+          stroke-linejoin="round" />
+    
+    <!-- Inner Stylized Protective Hands & Family / Worker Emblem -->
+    <path d="M 30,62 C 34,48 40,40 50,40 C 60,40 66,48 70,62 C 63,55 58,54 50,58 C 42,54 37,55 30,62 Z" 
+          fill="#FFFFFF" />
+    <circle cx="50" cy="33" r="7" fill="#00d2ff" />
+    <circle cx="41" cy="46" r="4.5" fill="#FFFFFF" />
+    <circle cx="59" cy="46" r="4.5" fill="#FFFFFF" />
+    
+    <!-- Olive Wreath / Gear Accent Curve -->
+    <path d="M 24,42 C 20,55 23,70 33,78" fill="none" stroke="#00d2ff" stroke-width="2.5" stroke-linecap="round" />
+    <path d="M 76,42 C 80,55 77,70 67,78" fill="none" stroke="#00d2ff" stroke-width="2.5" stroke-linecap="round" />
+  </g>
+
+  <!-- Text: CNAS -->
+  <text x="125" y="65" font-family="'Segoe UI', 'Montserrat', 'Inter', -apple-system, sans-serif" font-weight="900" font-size="44" fill="#0055A5" letter-spacing="2">
+    CNAS
+  </text>
+  
+  <!-- Accent Line -->
+  <rect x="125" y="74" width="345" height="3" rx="1.5" fill="url(#cyanAccent)" />
+  
+  <!-- Subtitle Text -->
+  <text x="125" y="93" font-family="'Segoe UI', 'Inter', -apple-system, sans-serif" font-weight="700" font-size="11.5" fill="#2D3748" letter-spacing="0.5">
+    CAISSE NATIONALE DES ASSURANCES SOCIALES
+  </text>
+  <text x="125" y="107" font-family="'Segoe UI', 'Inter', -apple-system, sans-serif" font-weight="600" font-size="9.5" fill="#718096" letter-spacing="1.2">
+    DES TRAVAILLEURS SALARIÉS • DIRECTION GÉNÉRALE
+  </text>
+</svg>

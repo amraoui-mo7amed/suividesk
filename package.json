@@ -1,0 +1,53 @@
+{
+  "name": "suividesk",
+  "version": "1.0.0",
+  "description": "SuiviDesk - Système Proactif de Suivi Opérationnel & Échéances CNAS",
+  "main": "dist-electron/main.js",
+  "scripts": {
+    "dev:vite": "vite",
+    "build:electron": "esbuild electron/main.ts electron/preload.ts --platform=node --target=node20 --bundle --outdir=dist-electron --external:electron --external:better-sqlite3",
+    "build:vite": "vite build",
+    "build": "npm run build:electron && npm run build:vite",
+    "dev": "npm run build:electron && cross-env NODE_ENV=development concurrently -k -s first \"vite\" \"wait-on tcp:5173 && electron .\"",
+    "start": "cross-env NODE_ENV=production electron .",
+    "postinstall": "npx @electron/rebuild -f -w better-sqlite3"
+  },
+  "keywords": [
+    "cnas",
+    "suivi-dossiers",
+    "electron",
+    "react",
+    "liquid-glass",
+    "weasyprint"
+  ],
+  "author": "CNAS IT Team",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "better-sqlite3": "^13.0.3",
+    "clsx": "^2.1.1",
+    "framer-motion": "^14.9.0",
+    "lucide-react": "^1.66.0",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "recharts": "^3.10.1",
+    "tailwind-merge": "^3.7.0"
+  },
+  "devDependencies": {
+    "@electron/rebuild": "^4.2.1",
+    "@tailwindcss/vite": "^4.3.3",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@vitejs/plugin-react": "^6.1.2",
+    "autoprefixer": "^10.6.2",
+    "concurrently": "^10.0.6",
+    "cross-env": "^10.1.0",
+    "electron": "^45.2.1",
+    "esbuild": "^0.28.2",
+    "postcss": "^8.5.32",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^7.0.2",
+    "vite": "^8.3.5",
+    "wait-on": "^9.5.1"
+  }
+}
