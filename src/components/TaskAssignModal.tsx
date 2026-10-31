@@ -1,16 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { 
   X, 
-  Calendar, 
-  User, 
-  BookOpen, 
-  Clock, 
-  AlertCircle,
-  PlusCircle,
-  ChevronDown
+  AlertCircle
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { Employee, TaskTemplate, TaskPriority, CNASService } from '../types';
+import { CustomSelect, Option } from './CustomSelect';
 
 interface TaskAssignModalProps {
   isOpen: boolean;
@@ -88,8 +83,7 @@ export const TaskAssignModal: React.FC<TaskAssignModalProps> = ({
     setDateEcheance(`${dy}-${dm}-${dd}`);
   };
 
-  const handleTemplateChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    const val = e.target.value;
+  const handleTemplateChange = (val: string) => {
     setSelectedTemplateId(val);
     if (val) {
       const found = templates.find((t) => String(t.id) === val);
@@ -145,6 +139,38 @@ export const TaskAssignModal: React.FC<TaskAssignModalProps> = ({
 
   if (!isOpen) return null;
 
+  // Options formatting for CustomSelect
+  const templateOptions: Option[] = [
+    { value: '', label: '-- Tâche libre personnalisée --' },
+    ...templates.map((tpl) => ({
+      value: String(tpl.id),
+      label: `[${tpl.code}] ${tpl.titre}`,
+      subtitle: `Pôle : ${tpl.service} • Délai prescrit : ${tpl.duree_estimee_jours} jours`
+    }))
+  ];
+
+  const serviceOptions: Option[] = [
+    { value: 'Recouvrement', label: 'Recouvrement' },
+    { value: 'Prestations', label: 'Prestations' },
+    { value: 'Contrôle Médical', label: 'Contrôle Médical' },
+    { value: 'Contentieux', label: 'Contentieux' },
+    { value: 'Informatique', label: 'Informatique' },
+    { value: 'Ressources Humaines', label: 'Ressources Humaines (RH)' }
+  ];
+
+  const priorityOptions: Option[] = [
+    { value: 'Urgente', label: 'Urgente' },
+    { value: 'Haute', label: 'Haute' },
+    { value: 'Moyenne', label: 'Moyenne' },
+    { value: 'Basse', label: 'Basse' }
+  ];
+
+  const employeeOptions: Option[] = employees.map((emp) => ({
+    value: String(emp.id),
+    label: `${emp.nom} ${emp.prenom}`,
+    subtitle: `Matricule : ${emp.matricule} • ${emp.service} • ${emp.active_tasks_count || 0} dossiers actifs`
+  }));
+
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4">
       <div 
@@ -152,7 +178,7 @@ export const TaskAssignModal: React.FC<TaskAssignModalProps> = ({
         onClick={onClose}
       />
 
-      <div className={`relative w-full max-w-lg rounded-2xl p-6 shadow-2xl transition-all border overflow-visible ${
+      <div className={`relative w-full max-w-xl rounded-2xl p-6 shadow-2xl transition-all border overflow-visible ${
         theme === 'dark' 
           ? 'glass-panel-dark bg-slate-950 text-slate-100 border-slate-800' 
           : 'glass-panel-light bg-white text-slate-900 border-slate-200'
@@ -178,52 +204,40 @@ export const TaskAssignModal: React.FC<TaskAssignModalProps> = ({
           </div>
         )}
 
-        {/* Form Body with overflow-visible selects */}
-        <form onSubmit={handleSubmit} className="py-3 space-y-3 overflow-visible">
+        {/* Form Body with overflow-visible selects and non-truncating text */}
+        <form onSubmit={handleSubmit} className="py-3 space-y-3.5 overflow-visible">
           
-          {/* Template select */}
+          {/* Template Custom Select with full text wrapping */}
           <div className="overflow-visible">
-            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
-              Modèle depuis Catalogue (Facultatif)
-            </label>
-            <div className="relative overflow-visible">
-              <select
-                value={selectedTemplateId}
-                onChange={handleTemplateChange}
-                className={`w-full px-3 py-2 rounded-xl text-xs font-medium appearance-none pr-7 cursor-pointer ${
-                  theme === 'dark' ? 'glass-input-dark' : 'glass-input-light'
-                }`}
-              >
-                <option value="">-- Tâche libre personnalisée --</option>
-                {templates.map((tpl) => (
-                  <option key={tpl.id} value={tpl.id}>
-                    [{tpl.code}] {tpl.titre} ({tpl.service})
-                  </option>
-                ))}
-              </select>
-              <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-            </div>
+            <CustomSelect
+              label="Modèle depuis Catalogue (Facultatif)"
+              options={templateOptions}
+              value={selectedTemplateId}
+              onChange={handleTemplateChange}
+              searchable
+              placeholder="Sélectionner un modèle type..."
+            />
           </div>
 
-          {/* Title */}
+          {/* Intitulé with textarea for full visibility without truncation */}
           <div>
             <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
               Intitulé *
             </label>
-            <input
-              type="text"
+            <textarea
               required
+              rows={2}
               value={titre}
               onChange={(e) => setTitre(e.target.value)}
-              placeholder="Ex: Traitement réclamation cotisations..."
-              className={`w-full px-3 py-2 rounded-xl text-xs font-medium ${
+              placeholder="Intitulé complet du dossier..."
+              className={`w-full px-3 py-2 rounded-xl text-xs font-semibold leading-relaxed resize-none ${
                 theme === 'dark' ? 'glass-input-dark' : 'glass-input-light'
               }`}
             />
           </div>
 
-          {/* Dossier Ref & Service */}
-          <div className="grid grid-cols-2 gap-2.5 overflow-visible">
+          {/* Dossier Ref & Service Custom Select */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 overflow-visible">
             <div>
               <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
                 Réf. Dossier
@@ -240,79 +254,40 @@ export const TaskAssignModal: React.FC<TaskAssignModalProps> = ({
             </div>
 
             <div className="overflow-visible">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
-                Pôle / Service *
-              </label>
-              <div className="relative overflow-visible">
-                <select
-                  value={service}
-                  onChange={(e) => setService(e.target.value)}
-                  className={`w-full px-3 py-2 rounded-xl text-xs font-medium appearance-none pr-7 cursor-pointer ${
-                    theme === 'dark' ? 'glass-input-dark' : 'glass-input-light'
-                  }`}
-                >
-                  <option value="Recouvrement">Recouvrement</option>
-                  <option value="Prestations">Prestations</option>
-                  <option value="Contrôle Médical">Contrôle Médical</option>
-                  <option value="Contentieux">Contentieux</option>
-                  <option value="Informatique">Informatique</option>
-                  <option value="Ressources Humaines">RH</option>
-                </select>
-                <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-              </div>
+              <CustomSelect
+                label="Pôle / Service *"
+                options={serviceOptions}
+                value={service}
+                onChange={(val) => setService(val)}
+              />
             </div>
           </div>
 
-          {/* Priority & Assignee Agent */}
-          <div className="grid grid-cols-2 gap-2.5 overflow-visible">
+          {/* Priority & Assignee Agent Custom Select */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 overflow-visible">
             <div className="overflow-visible">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
-                Priorité *
-              </label>
-              <div className="relative overflow-visible">
-                <select
-                  value={priorite}
-                  onChange={(e) => setPriorite(e.target.value as TaskPriority)}
-                  className={`w-full px-3 py-2 rounded-xl text-xs font-semibold appearance-none pr-7 cursor-pointer ${
-                    theme === 'dark' ? 'glass-input-dark' : 'glass-input-light'
-                  }`}
-                >
-                  <option value="Urgente">Urgente</option>
-                  <option value="Haute">Haute</option>
-                  <option value="Moyenne">Moyenne</option>
-                  <option value="Basse">Basse</option>
-                </select>
-                <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-              </div>
+              <CustomSelect
+                label="Priorité *"
+                options={priorityOptions}
+                value={priorite}
+                onChange={(val) => setPriorite(val as TaskPriority)}
+              />
             </div>
 
             <div className="overflow-visible">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
-                Collaborateur *
-              </label>
-              <div className="relative overflow-visible">
-                <select
-                  value={agentId}
-                  required
-                  onChange={(e) => setAgentId(e.target.value)}
-                  className={`w-full px-3 py-2 rounded-xl text-xs font-medium appearance-none pr-7 cursor-pointer ${
-                    theme === 'dark' ? 'glass-input-dark' : 'glass-input-light'
-                  }`}
-                >
-                  <option value="">Sélectionner un agent</option>
-                  {employees.map((emp) => (
-                    <option key={emp.id} value={emp.id}>
-                      {emp.nom} {emp.prenom} ({emp.matricule})
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-              </div>
+              <CustomSelect
+                label="Collaborateur *"
+                options={employeeOptions}
+                value={agentId}
+                onChange={(val) => setAgentId(val)}
+                searchable
+                placeholder="Sélectionner un collaborateur..."
+              />
             </div>
           </div>
 
           {/* Dates */}
-          <div className="grid grid-cols-2 gap-2.5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <div>
               <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
                 Date Début
@@ -322,7 +297,7 @@ export const TaskAssignModal: React.FC<TaskAssignModalProps> = ({
                 required
                 value={dateDebut}
                 onChange={(e) => setDateDebut(e.target.value)}
-                className={`w-full px-3 py-1.5 rounded-xl text-xs font-medium ${
+                className={`w-full px-3 py-2 rounded-xl text-xs font-medium ${
                   theme === 'dark' ? 'glass-input-dark' : 'glass-input-light'
                 }`}
               />
@@ -337,7 +312,7 @@ export const TaskAssignModal: React.FC<TaskAssignModalProps> = ({
                 required
                 value={dateEcheance}
                 onChange={(e) => setDateEcheance(e.target.value)}
-                className={`w-full px-3 py-1.5 rounded-xl text-xs font-bold text-[#0055A5] dark:text-cyan-300 ${
+                className={`w-full px-3 py-2 rounded-xl text-xs font-bold text-[#0055A5] dark:text-cyan-300 ${
                   theme === 'dark' ? 'glass-input-dark' : 'glass-input-light'
                 }`}
               />
@@ -347,14 +322,14 @@ export const TaskAssignModal: React.FC<TaskAssignModalProps> = ({
           {/* Description */}
           <div>
             <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
-              Instructions
+              Instructions & Notes
             </label>
             <textarea
               rows={2}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              placeholder="Détails complémentaires..."
-              className={`w-full p-2.5 rounded-xl text-xs font-medium ${
+              placeholder="Consignes et spécifications..."
+              className={`w-full p-2.5 rounded-xl text-xs font-medium leading-relaxed ${
                 theme === 'dark' ? 'glass-input-dark' : 'glass-input-light'
               }`}
             />
@@ -372,7 +347,7 @@ export const TaskAssignModal: React.FC<TaskAssignModalProps> = ({
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-4 py-1.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-[#0055A5] to-[#00A3E0] shadow-sm hover:opacity-90 active:scale-95"
+              className="px-4 py-1.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-[#0055A5] to-[#00A3E0] shadow-sm hover:opacity-90 active:scale-95 transition-all"
             >
               {isSubmitting ? 'Affectation...' : 'Valider'}
             </button>

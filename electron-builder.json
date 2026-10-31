@@ -1,0 +1,44 @@
+{
+  "appId": "dz.cnas.suividesk",
+  "productName": "SuiviDesk",
+  "copyright": "Copyright © 2026 CNAS",
+  "directories": {
+    "output": "release"
+  },
+  "files": [
+    "dist/**/*",
+    "dist-electron/**/*",
+    "assets/**/*",
+    "python/**/*",
+    "package.json"
+  ],
+  "extraResources": [
+    {
+      "from": "python",
+      "to": "python"
+    },
+    {
+      "from": "assets",
+      "to": "assets"
+    }
+  ],
+  "win": {
+    "target": [
+      {
+        "target": "portable",
+        "arch": ["x64"]
+      },
+      {
+        "target": "nsis",
+        "arch": ["x64"]
+      }
+    ]
+  },
+  "nsis": {
+    "oneClick": false,
+    "allowToChangeInstallationDirectory": true,
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true,
+    "shortcutName": "SuiviDesk"
+  }
+}

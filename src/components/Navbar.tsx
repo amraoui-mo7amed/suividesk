@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { TaskAssignment } from '../types';
+import { SuiviDeskLogo } from './SuiviDeskLogo';
 
 interface NavbarProps {
   urgentTasks: TaskAssignment[];
@@ -60,21 +61,18 @@ export const Navbar: React.FC<NavbarProps> = ({
   const totalAlerts = overdueCount + j3Count;
 
   return (
-    <header className={`sticky top-0 z-30 transition-colors duration-200 border-b overflow-visible ${
+    <header className={`sticky top-0 z-30 transition-colors duration-200 border-b overflow-visible select-none ${
       theme === 'dark' 
-        ? 'glass-panel-dark border-slate-800/80 bg-slate-950/80 text-slate-100' 
-        : 'glass-panel-light border-slate-200/90 bg-white/85 text-slate-800'
+        ? 'glass-panel-dark border-slate-800/80 bg-slate-950/85 text-slate-100' 
+        : 'glass-panel-light border-slate-200/90 bg-white/90 text-slate-800'
     }`}>
-      <div className="flex items-center justify-between px-6 py-2.5">
+      {/* Pl-24 ensures macOS window traffic lights never overlap the logo */}
+      <div className="flex items-center justify-between px-6 pl-24 py-2.5">
         
-        {/* Left: Custom App Icon & SuiviDesk Identity */}
-        <div className="flex items-center space-x-3">
+        {/* Left: Custom Inline App Logo & SuiviDesk Brand */}
+        <div className="flex items-center space-x-3" style={{ WebkitAppRegion: 'no-drag' } as any}>
           <div className="flex items-center space-x-2.5">
-            <img 
-              src="/favicon.svg" 
-              alt="SuiviDesk" 
-              className="h-8 w-8 rounded-xl shadow-md transition-transform hover:scale-105"
-            />
+            <SuiviDeskLogo className="h-8 w-8 rounded-xl shadow-md transition-transform hover:scale-105" />
             <div className="flex items-center space-x-2">
               <span className="text-lg font-black tracking-tight bg-gradient-to-r from-[#0055A5] via-[#0072CE] to-[#00A3E0] dark:from-white dark:to-cyan-400 bg-clip-text text-transparent">
                 SuiviDesk
@@ -94,7 +92,7 @@ export const Navbar: React.FC<NavbarProps> = ({
         </div>
 
         {/* Right: Actions, Alerts, Theme & New Task Button */}
-        <div className="flex items-center space-x-2 sm:space-x-2.5">
+        <div className="flex items-center space-x-2 sm:space-x-2.5" style={{ WebkitAppRegion: 'no-drag' } as any}>
           
           {/* Quick PDF Report */}
           <button

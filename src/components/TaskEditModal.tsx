@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { 
   X, 
-  AlertCircle,
-  ChevronDown
+  AlertCircle
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { TaskAssignment, Employee, TaskPriority, CNASService, TaskStatus } from '../types';
+import { CustomSelect, Option } from './CustomSelect';
 
 interface TaskEditModalProps {
   task: TaskAssignment | null;
@@ -95,6 +95,28 @@ export const TaskEditModal: React.FC<TaskEditModalProps> = ({
 
   if (!isOpen || !task) return null;
 
+  const serviceOptions: Option[] = [
+    { value: 'Recouvrement', label: 'Recouvrement' },
+    { value: 'Prestations', label: 'Prestations' },
+    { value: 'Contrôle Médical', label: 'Contrôle Médical' },
+    { value: 'Contentieux', label: 'Contentieux' },
+    { value: 'Informatique', label: 'Informatique' },
+    { value: 'Ressources Humaines', label: 'Ressources Humaines (RH)' }
+  ];
+
+  const priorityOptions: Option[] = [
+    { value: 'Urgente', label: 'Urgente' },
+    { value: 'Haute', label: 'Haute' },
+    { value: 'Moyenne', label: 'Moyenne' },
+    { value: 'Basse', label: 'Basse' }
+  ];
+
+  const employeeOptions: Option[] = employees.map((emp) => ({
+    value: String(emp.id),
+    label: `${emp.nom} ${emp.prenom}`,
+    subtitle: `Matricule : ${emp.matricule} • ${emp.service}`
+  }));
+
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4">
       <div 
@@ -126,23 +148,23 @@ export const TaskEditModal: React.FC<TaskEditModalProps> = ({
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="py-3 space-y-3 overflow-visible">
+        <form onSubmit={handleSubmit} className="py-3 space-y-3.5 overflow-visible">
           <div>
             <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
               Intitulé *
             </label>
-            <input
-              type="text"
+            <textarea
               required
+              rows={2}
               value={titre}
               onChange={(e) => setTitre(e.target.value)}
-              className={`w-full px-3 py-2 rounded-xl text-xs font-medium ${
+              className={`w-full px-3 py-2 rounded-xl text-xs font-semibold leading-relaxed resize-none ${
                 theme === 'dark' ? 'glass-input-dark' : 'glass-input-light'
               }`}
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-2.5 overflow-visible">
+          <div className="grid grid-cols-2 gap-3 overflow-visible">
             <div>
               <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
                 Réf. Dossier
@@ -158,76 +180,37 @@ export const TaskEditModal: React.FC<TaskEditModalProps> = ({
             </div>
 
             <div className="overflow-visible">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
-                Pôle / Service
-              </label>
-              <div className="relative overflow-visible">
-                <select
-                  value={service}
-                  onChange={(e) => setService(e.target.value)}
-                  className={`w-full px-3 py-2 rounded-xl text-xs font-medium appearance-none pr-7 cursor-pointer ${
-                    theme === 'dark' ? 'glass-input-dark' : 'glass-input-light'
-                  }`}
-                >
-                  <option value="Recouvrement">Recouvrement</option>
-                  <option value="Prestations">Prestations</option>
-                  <option value="Contrôle Médical">Contrôle Médical</option>
-                  <option value="Contentieux">Contentieux</option>
-                  <option value="Informatique">Informatique</option>
-                  <option value="Ressources Humaines">RH</option>
-                </select>
-                <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-              </div>
+              <CustomSelect
+                label="Pôle / Service"
+                options={serviceOptions}
+                value={service}
+                onChange={(val) => setService(val)}
+              />
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-2.5 overflow-visible">
+          <div className="grid grid-cols-2 gap-3 overflow-visible">
             <div className="overflow-visible">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
-                Priorité
-              </label>
-              <div className="relative overflow-visible">
-                <select
-                  value={priorite}
-                  onChange={(e) => setPriorite(e.target.value as TaskPriority)}
-                  className={`w-full px-3 py-2 rounded-xl text-xs font-semibold appearance-none pr-7 cursor-pointer ${
-                    theme === 'dark' ? 'glass-input-dark' : 'glass-input-light'
-                  }`}
-                >
-                  <option value="Urgente">Urgente</option>
-                  <option value="Haute">Haute</option>
-                  <option value="Moyenne">Moyenne</option>
-                  <option value="Basse">Basse</option>
-                </select>
-                <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-              </div>
+              <CustomSelect
+                label="Priorité"
+                options={priorityOptions}
+                value={priorite}
+                onChange={(val) => setPriorite(val as TaskPriority)}
+              />
             </div>
 
             <div className="overflow-visible">
-              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
-                Collaborateur
-              </label>
-              <div className="relative overflow-visible">
-                <select
-                  value={agentId}
-                  required
-                  onChange={(e) => setAgentId(e.target.value)}
-                  className={`w-full px-3 py-2 rounded-xl text-xs font-medium appearance-none pr-7 cursor-pointer ${
-                    theme === 'dark' ? 'glass-input-dark' : 'glass-input-light'
-                  }`}
-                >
-                  {employees.map((emp) => (
-                    <option key={emp.id} value={emp.id}>
-                      {emp.nom} {emp.prenom}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
-              </div>
+              <CustomSelect
+                label="Collaborateur"
+                options={employeeOptions}
+                value={agentId}
+                onChange={(val) => setAgentId(val)}
+                searchable
+              />
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-2.5">
+          <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
                 Date Début
@@ -261,13 +244,13 @@ export const TaskEditModal: React.FC<TaskEditModalProps> = ({
 
           <div>
             <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
-              Instructions
+              Instructions & Consignes
             </label>
             <textarea
               rows={2}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className={`w-full p-2.5 rounded-xl text-xs font-medium ${
+              className={`w-full p-2.5 rounded-xl text-xs font-medium leading-relaxed ${
                 theme === 'dark' ? 'glass-input-dark' : 'glass-input-light'
               }`}
             />
@@ -284,7 +267,7 @@ export const TaskEditModal: React.FC<TaskEditModalProps> = ({
             <button
               type="submit"
               disabled={isSubmitting}
-              className="px-4 py-1.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-[#0055A5] to-[#00A3E0] shadow-sm hover:opacity-90 active:scale-95"
+              className="px-4 py-1.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-[#0055A5] to-[#00A3E0] shadow-sm hover:opacity-90 active:scale-95 transition-all"
             >
               {isSubmitting ? 'Enregistrement...' : 'Mettre à jour'}
             </button>
