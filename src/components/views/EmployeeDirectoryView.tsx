@@ -143,8 +143,29 @@ export const EmployeeDirectoryView: React.FC<EmployeeDirectoryViewProps> = ({
       </div>
 
       {/* Employees Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3.5">
-        {filtered.map((emp) => {
+      {filtered.length === 0 ? (
+        <div className={`p-10 rounded-2xl border text-center ${
+          theme === 'dark' ? 'glass-panel-dark border-slate-800' : 'glass-panel-light border-slate-200'
+        }`}>
+          <div className="mx-auto w-10 h-10 rounded-xl bg-blue-500/10 text-[#0055A5] dark:text-cyan-400 flex items-center justify-center mb-3">
+            <Users2 className="w-5 h-5" />
+          </div>
+          <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">
+            Aucun collaborateur enregistré
+          </h3>
+          <p className="text-xs text-slate-400 mt-1 mb-4">
+            Ajoutez les membres de votre équipe pour commencer à leur assigner des tâches.
+          </p>
+          <button
+            onClick={() => setIsAddModalOpen(true)}
+            className="px-3.5 py-1.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-[#0055A5] to-[#00A3E0] shadow-sm hover:opacity-95 transition-all"
+          >
+            + Ajouter un Collaborateur
+          </button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3.5">
+          {filtered.map((emp) => {
           const workload = emp.workload_percentage || 0;
           const activeTasks = emp.active_tasks_count || 0;
 
@@ -227,7 +248,8 @@ export const EmployeeDirectoryView: React.FC<EmployeeDirectoryViewProps> = ({
             </div>
           );
         })}
-      </div>
+        </div>
+      )}
 
       {/* Modal: Add Employee */}
       {isAddModalOpen && (

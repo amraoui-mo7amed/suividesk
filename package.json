@@ -8,6 +8,7 @@
     "build:electron": "esbuild electron/main.ts electron/preload.ts --platform=node --target=node20 --bundle --outdir=dist-electron --external:electron --external:better-sqlite3",
     "build:vite": "vite build",
     "build": "npm run build:electron && npm run build:vite",
+    "package:win": "npm run build && electron-builder --win -c.npmRebuild=false",
     "dev": "npm run build:electron && cross-env NODE_ENV=development concurrently -k -s first \"vite\" \"wait-on tcp:5173 && electron .\"",
     "start": "cross-env NODE_ENV=production electron .",
     "postinstall": "npx @electron/rebuild -f -w better-sqlite3"
