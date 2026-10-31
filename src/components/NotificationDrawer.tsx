@@ -156,7 +156,7 @@ export const NotificationDrawer: React.FC<NotificationDrawerProps> = ({
                               ) : (
                                 <ClockAlert className="w-3.5 h-3.5 text-amber-500 flex-shrink-0" />
                               )}
-                              <span className="text-[11px] font-bold text-slate-900 dark:text-slate-100 line-clamp-1">
+                              <span className="text-[11px] font-bold text-white line-clamp-1">
                                 {task.titre}
                               </span>
                             </div>

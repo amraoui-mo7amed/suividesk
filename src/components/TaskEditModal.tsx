@@ -124,18 +124,14 @@ export const TaskEditModal: React.FC<TaskEditModalProps> = ({
         onClick={onClose}
       />
 
-      <div className={`relative w-full max-w-lg rounded-2xl p-6 shadow-2xl transition-all border overflow-visible ${
-        theme === 'dark' 
-          ? 'glass-panel-dark bg-slate-950 text-slate-100 border-slate-800' 
-          : 'glass-panel-light bg-white text-slate-900 border-slate-200'
-      }`}>
-        <div className="flex items-center justify-between pb-3 border-b border-slate-200/60 dark:border-slate-800">
-          <h2 className="text-sm font-bold text-slate-900 dark:text-white">
+      <div className="relative w-full max-w-lg rounded-2xl p-6 shadow-2xl transition-all border border-slate-800 bg-[#090e1f] text-slate-100 overflow-visible glass-panel-dark">
+        <div className="flex items-center justify-between pb-3 border-b border-slate-800">
+          <h2 className="text-sm font-bold text-white">
             Modifier la Tâche
           </h2>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200"
+            className="p-1 rounded-lg text-slate-400 hover:text-white"
           >
             <X className="w-4 h-4" />
           </button>

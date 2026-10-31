@@ -65,15 +65,15 @@ export const Navbar: React.FC<NavbarProps> = ({
         ? 'glass-panel-dark border-slate-800/80 bg-slate-950/85 text-slate-100' 
         : 'glass-panel-light border-slate-200/90 bg-white/90 text-slate-800'
     }`}>
-      {/* Pl-24 ensures macOS window traffic lights never overlap the logo */}
-      <div className="flex items-center justify-between px-6 pl-24 py-2.5">
+      {/* Aligned to the left of the window without extra padding or margin */}
+      <div className="flex items-center justify-between px-4 py-2.5">
         
         {/* Left: Custom Inline App Logo & SuiviDesk Brand */}
         <div className="flex items-center space-x-3" style={{ WebkitAppRegion: 'no-drag' } as any}>
           <div className="flex items-center space-x-2.5">
             <SuiviDeskLogo className="h-8 w-8 rounded-xl shadow-md transition-transform hover:scale-105" />
             <div className="flex items-center space-x-2">
-              <span className="text-lg font-black tracking-tight bg-gradient-to-r from-[#0055A5] via-[#0072CE] to-[#00A3E0] dark:from-white dark:to-cyan-400 bg-clip-text text-transparent">
+              <span className="text-lg font-black tracking-tight text-white bg-gradient-to-r from-white via-cyan-200 to-cyan-400 bg-clip-text text-transparent">
                 SuiviDesk
               </span>
             </div>
@@ -125,16 +125,14 @@ export const Navbar: React.FC<NavbarProps> = ({
                     onExportPdf();
                   }}
                   disabled={isExportingPdf}
-                  className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-left text-xs transition-colors ${
-                    theme === 'dark' ? 'hover:bg-slate-800/90 text-slate-200' : 'hover:bg-blue-50/80 text-slate-700'
-                  } disabled:opacity-50`}
+                  className="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-left text-xs transition-colors hover:bg-slate-800/90 text-slate-100 disabled:opacity-50"
                 >
-                  <div className="w-8 h-8 rounded-lg bg-rose-500/10 text-rose-500 flex items-center justify-center flex-shrink-0">
+                  <div className="w-8 h-8 rounded-lg bg-rose-500/20 text-rose-400 flex items-center justify-center flex-shrink-0">
                     <FileDown className="w-4 h-4" />
                   </div>
                   <div className="flex-1">
-                    <div className="font-bold text-slate-900 dark:text-white">Rapport Officiel PDF</div>
-                    <div className="text-[10px] text-slate-400">Mise en page certifiée WeasyPrint</div>
+                    <div className="font-bold text-white text-xs">Rapport Officiel PDF</div>
+                    <div className="text-[10px] text-slate-300">Mise en page certifiée WeasyPrint</div>
                   </div>
                 </button>
 
@@ -145,16 +143,14 @@ export const Navbar: React.FC<NavbarProps> = ({
                     onExportCsv();
                   }}
                   disabled={isExportingCsv}
-                  className={`w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-left text-xs transition-colors ${
-                    theme === 'dark' ? 'hover:bg-slate-800/90 text-slate-200' : 'hover:bg-emerald-50/80 text-slate-700'
-                  } disabled:opacity-50`}
+                  className="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-left text-xs transition-colors hover:bg-slate-800/90 text-slate-100 disabled:opacity-50"
                 >
-                  <div className="w-8 h-8 rounded-lg bg-emerald-500/10 text-emerald-500 flex items-center justify-center flex-shrink-0">
+                  <div className="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center flex-shrink-0">
                     <FileSpreadsheet className="w-4 h-4" />
                   </div>
                   <div className="flex-1">
-                    <div className="font-bold text-slate-900 dark:text-white">Registre Excel (CSV)</div>
-                    <div className="text-[10px] text-slate-400">Format tableur conforme CNAS</div>
+                    <div className="font-bold text-white text-xs">Registre Excel (CSV)</div>
+                    <div className="text-[10px] text-slate-300">Format tableur conforme CNAS</div>
                   </div>
                 </button>
               </div>

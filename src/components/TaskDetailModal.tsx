@@ -68,24 +68,20 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
       />
 
       {/* Modal Dialog */}
-      <div className={`relative w-full max-w-xl rounded-2xl p-6 shadow-2xl transition-all border overflow-visible ${
-        theme === 'dark' 
-          ? 'glass-panel-dark bg-slate-950 text-slate-100 border-slate-800' 
-          : 'glass-panel-light bg-white text-slate-900 border-slate-200'
-      }`}>
+      <div className="relative w-full max-w-xl rounded-2xl p-6 shadow-2xl transition-all border border-slate-800 bg-[#090e1f] text-slate-100 overflow-visible glass-panel-dark">
         
         {/* Header */}
-        <div className="flex items-start justify-between pb-3 border-b border-slate-200/60 dark:border-slate-800">
+        <div className="flex items-start justify-between pb-3 border-b border-slate-800">
           <div className="space-y-1 pr-4">
             <div className="flex items-center space-x-2">
-              <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-blue-100 dark:bg-blue-950 text-[#0055A5] dark:text-cyan-300">
+              <span className="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-md bg-blue-950/80 border border-cyan-800/60 text-cyan-300">
                 {task.service}
               </span>
-              <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400">
+              <span className="text-[10px] font-bold uppercase px-2 py-0.5 rounded-md bg-slate-800 text-slate-300">
                 {task.priorite}
               </span>
             </div>
-            <h2 className="text-base font-bold text-slate-900 dark:text-white leading-snug">
+            <h2 className="text-base font-bold text-white leading-snug">
               {task.titre}
             </h2>
             {task.reference_dossier && (

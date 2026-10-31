@@ -1,10 +1,9 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @layer base {
   :root {
-    --bg-gradient-light: radial-gradient(circle at 15% 15%, rgba(0, 85, 165, 0.05) 0%, transparent 40%),
-                         radial-gradient(circle at 85% 85%, rgba(0, 163, 224, 0.05) 0%, transparent 45%),
-                         linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
     --bg-gradient-dark: radial-gradient(circle at 10% 20%, rgba(0, 85, 165, 0.18) 0%, transparent 50%),
                         radial-gradient(circle at 90% 80%, rgba(0, 163, 224, 0.12) 0%, transparent 50%),
                         radial-gradient(circle at 50% 50%, rgba(3, 7, 18, 0.98) 0%, #030712 100%);
@@ -21,6 +20,8 @@
     -moz-osx-font-smoothing: grayscale;
     user-select: none;
     overflow-x: hidden;
+    background-color: #030712;
+    color: #f8fafc;
   }
 }
 

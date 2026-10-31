@@ -14,15 +14,27 @@ let alertInterval: NodeJS.Timeout | null = null;
 const isDev = process.env.NODE_ENV !== 'production' && !app?.isPackaged;
 
 function createWindow() {
+  const iconPath = process.platform === 'win32'
+    ? path.join(__dirname, '../assets/icon.ico')
+    : path.join(__dirname, '../assets/icon.png');
+
+  if (process.platform === 'darwin' && app.dock) {
+    try {
+      app.dock.setIcon(path.join(__dirname, '../assets/icon.png'));
+    } catch (e) {
+      console.error('Dock icon error:', e);
+    }
+  }
+
   mainWindow = new BrowserWindow({
     width: 1360,
     height: 900,
     minWidth: 1080,
     minHeight: 700,
-    title: 'SuiviDesk • CNAS',
+    title: 'SuiviDesk',
     backgroundColor: '#0a0f1d',
-    titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
-    trafficLightPosition: { x: 18, y: 18 },
+    icon: iconPath,
+    titleBarStyle: 'default',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
       contextIsolation: true,

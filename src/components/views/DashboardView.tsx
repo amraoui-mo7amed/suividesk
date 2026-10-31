@@ -52,10 +52,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ stats, onFilterAle
       
       {/* Title */}
       <div>
-        <h1 className="text-lg font-black text-slate-900 dark:text-white tracking-tight">
+        <h1 className="text-lg font-black text-white tracking-tight">
           Tableau de Bord & Analytique
         </h1>
-        <p className="text-xs text-slate-400 mt-0.5">
+        <p className="text-xs text-slate-300 mt-0.5">
           Synthèse globale d'activité et charge de travail
         </p>
       </div>
@@ -64,14 +64,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ stats, onFilterAle
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
         
         {/* Total Tasks */}
-        <div className={`p-3.5 rounded-2xl border transition-all ${
-          theme === 'dark' ? 'glass-panel-dark border-slate-800' : 'glass-panel-light border-slate-200'
-        }`}>
+        <div className="p-3.5 rounded-2xl border border-slate-800 glass-panel-dark transition-all">
           <div className="flex items-center justify-between text-slate-400 mb-1">
             <span className="text-[10px] font-bold uppercase tracking-wider">Total</span>
-            <Layers className="w-3.5 h-3.5 text-[#0055A5] dark:text-cyan-400" />
+            <Layers className="w-3.5 h-3.5 text-cyan-400" />
           </div>
-          <div className="text-xl font-black text-slate-900 dark:text-white">
+          <div className="text-xl font-black text-white">
             {kpis.total}
           </div>
         </div>
@@ -79,17 +77,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ stats, onFilterAle
         {/* J-3 Alerts */}
         <div 
           onClick={() => onFilterAlert('j-3')}
-          className={`p-3.5 rounded-2xl border cursor-pointer transition-all hover:scale-[1.02] active:scale-95 ${
-            theme === 'dark' 
-              ? 'bg-amber-950/20 border-amber-800/40 text-amber-300' 
-              : 'bg-amber-50 border-amber-200 text-amber-900'
-          }`}
+          className="p-3.5 rounded-2xl border cursor-pointer transition-all hover:scale-[1.02] active:scale-95 bg-amber-950/30 border-amber-800/60 text-amber-300 shadow-sm"
         >
-          <div className="flex items-center justify-between text-amber-600 dark:text-amber-400 mb-1">
+          <div className="flex items-center justify-between text-amber-400 mb-1">
             <span className="text-[10px] font-bold uppercase tracking-wider">Alertes J-3</span>
             <ClockAlert className="w-3.5 h-3.5" />
           </div>
-          <div className="text-xl font-black text-amber-600 dark:text-amber-400">
+          <div className="text-xl font-black text-amber-300">
             {kpis.approachingJ3}
           </div>
         </div>
@@ -97,41 +91,33 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ stats, onFilterAle
         {/* En Retard */}
         <div 
           onClick={() => onFilterAlert('overdue')}
-          className={`p-3.5 rounded-2xl border cursor-pointer transition-all hover:scale-[1.02] active:scale-95 ${
-            theme === 'dark' 
-              ? 'bg-rose-950/20 border-rose-800/40 text-rose-300' 
-              : 'bg-rose-50 border-rose-200 text-rose-900'
-          }`}
+          className="p-3.5 rounded-2xl border cursor-pointer transition-all hover:scale-[1.02] active:scale-95 bg-rose-950/30 border-rose-800/60 text-rose-300 shadow-sm"
         >
-          <div className="flex items-center justify-between text-rose-600 dark:text-rose-400 mb-1">
+          <div className="flex items-center justify-between text-rose-400 mb-1">
             <span className="text-[10px] font-bold uppercase tracking-wider">En Retard</span>
             <AlertTriangle className="w-3.5 h-3.5" />
           </div>
-          <div className="text-xl font-black text-rose-600 dark:text-rose-400">
+          <div className="text-xl font-black text-rose-300">
             {kpis.overdue}
           </div>
         </div>
 
         {/* En Traitement */}
-        <div className={`p-3.5 rounded-2xl border transition-all ${
-          theme === 'dark' ? 'glass-panel-dark border-slate-800' : 'glass-panel-light border-slate-200'
-        }`}>
+        <div className="p-3.5 rounded-2xl border border-slate-800 glass-panel-dark transition-all">
           <div className="flex items-center justify-between text-slate-400 mb-1">
             <span className="text-[10px] font-bold uppercase tracking-wider">En Cours</span>
-            <Activity className="w-3.5 h-3.5 text-blue-500" />
+            <Activity className="w-3.5 h-3.5 text-blue-400" />
           </div>
-          <div className="text-xl font-black text-slate-900 dark:text-white">
+          <div className="text-xl font-black text-white">
             {kpis.inProgress}
           </div>
         </div>
 
         {/* Completion Rate */}
-        <div className={`p-3.5 rounded-2xl border transition-all col-span-2 lg:col-span-1 ${
-          theme === 'dark' ? 'glass-panel-dark border-slate-800' : 'glass-panel-light border-slate-200'
-        }`}>
+        <div className="p-3.5 rounded-2xl border border-slate-800 glass-panel-dark transition-all col-span-2 lg:col-span-1">
           <div className="flex items-center justify-between text-slate-400 mb-1">
             <span className="text-[10px] font-bold uppercase tracking-wider">Taux Clôture</span>
-            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
           </div>
           <div className="text-xl font-black text-emerald-500">
             {kpis.completionRate}%
@@ -144,10 +130,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ stats, onFilterAle
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         
         {/* Service Breakdown */}
-        <div className={`p-4 rounded-2xl border transition-all lg:col-span-2 ${
-          theme === 'dark' ? 'glass-panel-dark border-slate-800' : 'glass-panel-light border-slate-200'
-        }`}>
-          <h2 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider mb-3">
+        <div className="p-4 rounded-2xl border border-slate-800 glass-panel-dark transition-all lg:col-span-2">
+          <h2 className="text-xs font-bold text-white uppercase tracking-wider mb-3">
             Dossiers par Pôle d'Activité CNAS
           </h2>
 

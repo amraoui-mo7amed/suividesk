@@ -94,7 +94,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({
         </div>
 
         {/* Task Title */}
-        <h3 className="text-xs font-bold text-slate-900 dark:text-white line-clamp-2 leading-snug group-hover:text-[#0055A5] dark:group-hover:text-cyan-400 transition-colors">
+        <h3 className="text-xs font-bold text-white line-clamp-2 leading-snug group-hover:text-cyan-300 transition-colors">
           {task.titre}
         </h3>
       </div>

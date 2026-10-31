@@ -88,23 +88,19 @@ export const FilterModal: React.FC<FilterModalProps> = ({
       />
 
       {/* Modal Dialog */}
-      <div className={`relative w-full max-w-lg rounded-2xl p-6 shadow-2xl transition-all border ${
-        theme === 'dark' 
-          ? 'bg-[#0f172a] border-slate-700 text-slate-100 shadow-2xl shadow-black' 
-          : 'bg-white border-slate-200 text-slate-900 shadow-2xl shadow-blue-950/20'
-      }`}>
+      <div className="relative w-full max-w-lg rounded-2xl p-6 shadow-2xl transition-all border border-slate-800 bg-[#090e1f] text-slate-100 glass-panel-dark">
         
         {/* Header */}
-        <div className="flex items-center justify-between pb-3.5 border-b border-slate-200 dark:border-slate-800">
+        <div className="flex items-center justify-between pb-3.5 border-b border-slate-800">
           <div className="flex items-center space-x-2.5">
-            <div className="w-8 h-8 rounded-xl bg-[#0055A5]/10 text-[#0055A5] dark:text-cyan-400 flex items-center justify-center">
+            <div className="w-8 h-8 rounded-xl bg-cyan-950/80 border border-cyan-800/50 text-cyan-400 flex items-center justify-center">
               <SlidersHorizontal className="w-4 h-4" />
             </div>
             <div>
-              <h2 className="text-sm font-bold text-slate-900 dark:text-white">
+              <h2 className="text-sm font-bold text-white">
                 Filtrer les Dossiers
               </h2>
-              <p className="text-[11px] text-slate-400">
+              <p className="text-[11px] text-slate-300">
                 {totalResultsCount} dossier(s) correspondant{totalResultsCount > 1 ? 's' : ''}
               </p>
             </div>
@@ -112,7 +108,7 @@ export const FilterModal: React.FC<FilterModalProps> = ({
 
           <button
             onClick={onClose}
-            className="p-1.5 rounded-lg text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
           >
             <X className="w-4 h-4" />
           </button>

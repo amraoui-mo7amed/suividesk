@@ -89,12 +89,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 onClick={() => setActiveTab(item.id)}
                 className={`w-full flex items-center justify-between px-3 py-2.5 rounded-xl transition-all duration-150 text-left ${
                   isActive
-                    ? theme === 'dark'
-                      ? 'bg-gradient-to-r from-blue-950/70 to-cyan-950/40 text-cyan-300 border border-cyan-800/50 shadow-sm font-semibold'
-                      : 'bg-gradient-to-r from-blue-50 to-cyan-50/70 text-[#0055A5] border border-blue-200 shadow-sm font-semibold'
-                    : theme === 'dark'
-                      ? 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/40'
-                      : 'text-slate-600 hover:text-slate-900 hover:bg-slate-100/70'
+                    ? 'bg-gradient-to-r from-blue-950/80 to-cyan-950/50 text-cyan-300 border border-cyan-800/60 shadow-sm font-semibold'
+                    : 'text-slate-300 hover:text-white hover:bg-slate-900/50'
                 }`}
               >
                 <div className="flex items-center space-x-2.5">
@@ -105,8 +101,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 {item.badge !== undefined && (
                   <span className={`text-[10px] px-1.5 py-0.2 rounded-full font-bold ${
                     isActive
-                      ? theme === 'dark' ? 'bg-cyan-900/70 text-cyan-200' : 'bg-blue-200 text-blue-900'
-                      : theme === 'dark' ? 'bg-slate-800 text-slate-400' : 'bg-slate-200 text-slate-600'
+                      ? 'bg-cyan-900/80 text-cyan-200'
+                      : 'bg-slate-800 text-slate-300'
                   }`}>
                     {item.badge}
                   </span>

@@ -79,20 +79,18 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
         onClick={() => setIsOpen(!isOpen)}
         className={`w-full text-left rounded-xl transition-all flex items-center justify-between gap-1.5 border ${
           compact ? 'px-2.5 py-1.5 text-xs' : 'px-3 py-2 text-xs'
-        } ${
-          theme === 'dark' 
-            ? 'bg-slate-900 border-slate-700/80 text-slate-100 hover:border-cyan-500/50' 
-            : 'bg-white border-slate-300 text-slate-800 hover:border-blue-400'
-        } ${isOpen ? 'ring-2 ring-[#0055A5]/50 border-[#0055A5]' : ''}`}
+        } bg-[#0d1527] border-slate-700/80 text-white hover:border-cyan-500/50 ${
+          isOpen ? 'ring-2 ring-[#0055A5]/50 border-[#0055A5]' : ''
+        }`}
       >
         <div className="flex-1 min-w-0 pr-1">
           {selectedOption ? (
             <div className="whitespace-normal break-words leading-tight">
-              <span className={`font-semibold ${theme === 'dark' ? 'text-slate-100' : 'text-slate-900'}`}>
+              <span className="font-semibold text-white">
                 {selectedOption.label}
               </span>
               {selectedOption.subtitle && (
-                <span className="text-[10px] text-slate-400 ml-1.5 font-normal">
+                <span className="text-[10px] text-slate-300 ml-1.5 font-normal">
                   {selectedOption.subtitle}
                 </span>
               )}
@@ -108,41 +106,33 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
       {/* Solid Opaque Floating Dropdown Menu (No Transparency, High Z-Index, Full Overflow) */}
       {isOpen && (
         <div 
-          className={`absolute ${menuAlign === 'right' ? 'right-0' : 'left-0'} top-full mt-1.5 rounded-2xl shadow-2xl border transition-all ${
-            theme === 'dark' 
-              ? 'bg-[#0b1329] border-slate-700 text-slate-100 shadow-2xl shadow-black' 
-              : 'bg-white border-slate-200 text-slate-900 shadow-2xl shadow-blue-950/20'
-          }`}
+          className={`absolute ${menuAlign === 'right' ? 'right-0' : 'left-0'} top-full mt-1.5 rounded-2xl shadow-2xl border border-slate-700 bg-[#0b1329] text-slate-100 transition-all`}
           style={{ 
             minWidth: '100%',
             width: 'max-content',
             maxWidth: 'min(90vw, 460px)',
             maxHeight: '320px',
-            backgroundColor: theme === 'dark' ? '#0b1329' : '#ffffff',
+            backgroundColor: '#0b1329',
             opacity: 1,
             zIndex: 9999
           }}
         >
           {searchable && (
-            <div className={`p-2 border-b ${theme === 'dark' ? 'border-slate-800 bg-[#080d1d]' : 'border-slate-100 bg-slate-50'} rounded-t-2xl`}>
+            <div className="p-2 border-b border-slate-800 bg-[#080d1d] rounded-t-2xl">
               <input
                 type="text"
                 autoFocus
                 placeholder="Filtrer options..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className={`w-full px-2.5 py-1.5 rounded-lg text-xs outline-none ${
-                  theme === 'dark' 
-                    ? 'bg-slate-900 border border-slate-700 text-slate-100 placeholder-slate-500 focus:border-cyan-400' 
-                    : 'bg-white border border-slate-300 text-slate-900 placeholder-slate-400 focus:border-blue-500'
-                }`}
+                className="w-full px-2.5 py-1.5 rounded-lg text-xs outline-none bg-slate-900 border border-slate-700 text-slate-100 placeholder-slate-500 focus:border-cyan-400"
               />
             </div>
           )}
 
           <div 
             className="overflow-y-auto max-h-64 p-1.5 space-y-1 rounded-b-2xl"
-            style={{ backgroundColor: theme === 'dark' ? '#0b1329' : '#ffffff' }}
+            style={{ backgroundColor: '#0b1329' }}
           >
             {filteredOptions.length === 0 ? (
               <div className="px-3 py-3 text-xs text-slate-400 text-center italic">
@@ -162,9 +152,7 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
                     className={`px-3 py-2 rounded-xl text-xs cursor-pointer transition-colors flex items-start justify-between gap-2.5 ${
                       isSelected
                         ? 'bg-[#0055A5] text-white font-bold shadow-sm'
-                        : theme === 'dark'
-                          ? 'hover:bg-slate-800/90 text-slate-200'
-                          : 'hover:bg-blue-50 text-slate-800'
+                        : 'hover:bg-slate-800/90 text-slate-200'
                     }`}
                   >
                     <div className="flex-1 whitespace-normal break-words leading-relaxed">

@@ -43,10 +43,10 @@ export const TaskTrackingView: React.FC<TaskTrackingViewProps> = ({
       {/* Clean Top Title */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-lg font-black text-slate-900 dark:text-white tracking-tight">
+          <h1 className="text-lg font-black text-white tracking-tight">
             Suivi Opérationnel
           </h1>
-          <p className="text-xs text-slate-400 mt-0.5">
+          <p className="text-xs text-slate-300 mt-0.5">
             Gestion préventive et suivi des échéances en temps réel
           </p>
         </div>
@@ -79,16 +79,14 @@ export const TaskTrackingView: React.FC<TaskTrackingViewProps> = ({
 
       {/* Cards Grid */}
       {tasks.length === 0 ? (
-        <div className={`p-12 rounded-2xl border text-center transition-all ${
-          theme === 'dark' ? 'glass-panel-dark border-slate-800' : 'glass-panel-light border-slate-200'
-        }`}>
-          <div className="mx-auto w-10 h-10 rounded-xl bg-blue-500/10 text-[#0055A5] dark:text-cyan-400 flex items-center justify-center mb-3">
+        <div className="p-12 rounded-2xl border border-slate-800 glass-panel-dark text-center transition-all">
+          <div className="mx-auto w-10 h-10 rounded-xl bg-blue-500/15 text-cyan-400 flex items-center justify-center mb-3">
             <Inbox className="w-5 h-5" />
           </div>
-          <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">
+          <h3 className="text-sm font-bold text-white">
             Aucun dossier trouvé
           </h3>
-          <p className="text-xs text-slate-400 mt-1 mb-4">
+          <p className="text-xs text-slate-300 mt-1 mb-4">
             Modifiez vos filtres ou affectez un nouveau dossier.
           </p>
           <div className="flex items-center justify-center space-x-2">
