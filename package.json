@@ -1,6 +1,6 @@
 {
   "name": "suividesk",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "SuiviDesk - Système Proactif de Suivi Opérationnel & Échéances CNAS",
   "main": "dist-electron/main.js",
   "scripts": {

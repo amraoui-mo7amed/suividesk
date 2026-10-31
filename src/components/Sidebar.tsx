@@ -172,7 +172,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <div className={`p-3 border-t text-[10px] text-slate-400 flex items-center justify-between ${
           theme === 'dark' ? 'border-slate-800/60' : 'border-slate-200/80'
         }`}>
-          <span>SuiviDesk v1.0</span>
+          <span>SuiviDesk v1.1.0</span>
           <span className="text-[#00A3E0] font-semibold">J-3 Actif</span>
         </div>
       </div>
