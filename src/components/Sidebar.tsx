@@ -165,24 +165,26 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       </div>
 
-      {/* Date badge at the bottom of the navigation bar */}
-      <div className="p-3 pt-0">
-        <div className={`flex items-center space-x-2 px-3 py-2 rounded-xl text-xs font-medium border shadow-sm ${
-          theme === 'dark'
-            ? 'bg-slate-900/90 border-slate-800 text-slate-300'
-            : 'bg-white border-slate-200 text-slate-700'
-        }`}>
-          <CalendarClock className="w-3.5 h-3.5 text-[#00A3E0] flex-shrink-0" />
-          <span className="truncate text-[11px] font-semibold">{currentDate}</span>
+      {/* Bottom of Sidebar: Anchored Live Date Badge & Version Footer */}
+      <div className="mt-auto">
+        <div className="p-3 pb-2.5">
+          <div className={`flex items-center space-x-2 px-3 py-2 rounded-xl text-xs font-medium border shadow-sm ${
+            theme === 'dark'
+              ? 'bg-slate-900 border-slate-800 text-slate-300'
+              : 'bg-white border-slate-200 text-slate-700'
+          }`}>
+            <CalendarClock className="w-3.5 h-3.5 text-[#00A3E0] flex-shrink-0" />
+            <span className="truncate text-[11px] font-semibold">{currentDate}</span>
+          </div>
         </div>
-      </div>
 
-      {/* Sidebar Footer */}
-      <div className={`p-3 border-t text-[10px] text-slate-400 flex items-center justify-between ${
-        theme === 'dark' ? 'border-slate-800/60' : 'border-slate-200/80'
-      }`}>
-        <span>SuiviDesk v1.0</span>
-        <span className="text-[#00A3E0] font-semibold">J-3 Actif</span>
+        {/* Sidebar Footer */}
+        <div className={`p-3 border-t text-[10px] text-slate-400 flex items-center justify-between ${
+          theme === 'dark' ? 'border-slate-800/60' : 'border-slate-200/80'
+        }`}>
+          <span>SuiviDesk v1.0</span>
+          <span className="text-[#00A3E0] font-semibold">J-3 Actif</span>
+        </div>
       </div>
     </aside>
   );
