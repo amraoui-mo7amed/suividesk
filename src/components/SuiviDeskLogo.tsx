@@ -11,57 +11,39 @@ export const SuiviDeskLogo: React.FC<{ className?: string }> = ({ className = 'w
       <defs>
         <linearGradient id="logoBgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stopColor="#0055A5" />
-          <stop offset="60%" stopColor="#003B73" />
-          <stop offset="100%" stopColor="#07162c" />
+          <stop offset="50%" stopColor="#003B73" />
+          <stop offset="100%" stopColor="#06162d" />
         </linearGradient>
         <linearGradient id="logoCyanStroke" x1="0%" y1="0%" x2="100%" y2="100%">
           <stop offset="0%" stopColor="#38bdf8" />
           <stop offset="100%" stopColor="#00A3E0" />
         </linearGradient>
-        <linearGradient id="logoGlow" x1="0%" y1="0%" x2="100%" y2="0%">
-          <stop offset="0%" stopColor="#00d2ff" stopOpacity="0.8" />
-          <stop offset="100%" stopColor="#0055A5" stopOpacity="0.2" />
-        </linearGradient>
       </defs>
 
-      {/* Squircle Tile with Glass Border */}
+      {/* Solid Rounded Squircle Tile without edge whitespace */}
       <rect 
-        x="6" 
-        y="6" 
-        width="116" 
-        height="116" 
-        rx="28" 
+        x="2" 
+        y="2" 
+        width="124" 
+        height="124" 
+        rx="30" 
         fill="url(#logoBgGrad)" 
-        stroke="rgba(255, 255, 255, 0.18)" 
-        strokeWidth="2" 
-      />
-      
-      {/* Reflection Highlight */}
-      <path 
-        d="M 14,36 C 14,24 24,14 36,14 L 92,14 C 104,14 114,24 114,36 C 114,48 85,38 64,44 C 40,50 14,56 14,36 Z" 
-        fill="url(#logoGlow)" 
-        opacity="0.35" 
+        stroke="#00A3E0" 
+        strokeWidth="1.5" 
+        strokeOpacity="0.3"
       />
 
-      {/* Stylized Monogram S + Pulse Dot */}
-      <g transform="translate(28, 28)" strokeLinecap="round" strokeLinejoin="round">
+      {/* Stylized Pure Monogram S + Pulse Dot (no white notch, no white marks) */}
+      <g transform="translate(24, 20)" strokeLinecap="round" strokeLinejoin="round">
         <path 
-          d="M 52,14 C 48,6 36,4 26,6 C 12,9 8,22 16,32 C 24,42 48,40 54,50 C 60,60 52,70 38,70 C 24,70 14,64 10,54" 
+          d="M 58,16 C 52,6 38,4 28,6 C 14,9 10,24 20,36 C 30,48 58,46 64,58 C 70,70 60,82 44,82 C 28,82 16,74 12,62" 
           fill="none" 
           stroke="url(#logoCyanStroke)" 
-          strokeWidth="7" 
+          strokeWidth="8.5" 
         />
         
-        {/* Glow Tracking Spark Dot */}
-        <circle cx="56" cy="14" r="5" fill="#38bdf8" />
-
-        {/* Check Notch */}
-        <path 
-          d="M 28,52 L 35,59 L 48,46" 
-          fill="none" 
-          stroke="#FFFFFF" 
-          strokeWidth="4.5" 
-        />
+        {/* Cyan Spark Dot */}
+        <circle cx="62" cy="16" r="5.5" fill="#38bdf8" />
       </g>
     </svg>
   );

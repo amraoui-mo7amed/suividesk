@@ -264,7 +264,7 @@ export const App: React.FC = () => {
 
   return (
     <div 
-      className="min-h-screen flex flex-col transition-colors duration-300 relative text-slate-100"
+      className="h-screen w-screen flex flex-col overflow-hidden text-slate-100"
       style={{
         background: 'var(--bg-gradient-dark)'
       }}
@@ -294,7 +294,7 @@ export const App: React.FC = () => {
       />
 
       {/* Main Body with Sidebar + Content */}
-      <div className="flex-1 flex overflow-hidden">
+      <div className="flex-1 flex min-h-0 overflow-hidden">
         
         {/* Left Sidebar */}
         <Sidebar
@@ -304,8 +304,8 @@ export const App: React.FC = () => {
           onQuickFilterAlert={handleQuickFilterAlert}
         />
 
-        {/* Dynamic Center Viewport */}
-        <main className="flex-1 overflow-y-auto p-6 md:p-8">
+        {/* Dynamic Center Viewport with guaranteed scroll */}
+        <main className="flex-1 min-h-0 overflow-y-auto p-6 md:p-8">
           {activeTab === 'tracking' && (
             <TaskTrackingView
               tasks={tasks}
