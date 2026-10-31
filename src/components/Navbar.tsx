@@ -6,7 +6,6 @@ import {
   Plus, 
   FileDown, 
   FileSpreadsheet, 
-  ShieldCheck, 
   CalendarClock,
   Loader2
 } from 'lucide-react';
@@ -41,15 +40,13 @@ export const Navbar: React.FC<NavbarProps> = ({
     const updateTime = () => {
       const now = new Date();
       const options: Intl.DateTimeFormatOptions = { 
-        weekday: 'long', 
-        year: 'numeric', 
-        month: 'long', 
-        day: 'numeric',
+        weekday: 'short', 
+        day: 'numeric', 
+        month: 'short',
         hour: '2-digit',
         minute: '2-digit'
       };
       const formatted = now.toLocaleDateString('fr-FR', options);
-      // Capitalize first letter
       setCurrentDate(formatted.charAt(0).toUpperCase() + formatted.slice(1));
     };
 
@@ -63,70 +60,51 @@ export const Navbar: React.FC<NavbarProps> = ({
   const totalAlerts = overdueCount + j3Count;
 
   return (
-    <header className={`sticky top-0 z-30 transition-colors duration-200 border-b ${
+    <header className={`sticky top-0 z-30 transition-colors duration-200 border-b overflow-visible ${
       theme === 'dark' 
-        ? 'glass-panel-dark border-slate-800/80 bg-slate-950/70 text-slate-100' 
-        : 'glass-panel-light border-slate-200/90 bg-white/80 text-slate-800'
+        ? 'glass-panel-dark border-slate-800/80 bg-slate-950/80 text-slate-100' 
+        : 'glass-panel-light border-slate-200/90 bg-white/85 text-slate-800'
     }`}>
-      <div className="flex items-center justify-between px-6 py-3">
+      <div className="flex items-center justify-between px-6 py-2.5">
         
-        {/* Left: CNAS Logo & Branding */}
-        <div className="flex items-center space-x-4">
-          <div className="flex items-center space-x-3">
+        {/* Left: Custom App Icon & SuiviDesk Identity */}
+        <div className="flex items-center space-x-3">
+          <div className="flex items-center space-x-2.5">
             <img 
-              src="/assets/cnas-logo.svg" 
-              alt="Logo CNAS" 
-              className="h-10 w-auto object-contain drop-shadow-sm"
-              onError={(e) => {
-                // Fallback badge if image fails
-                (e.target as HTMLElement).style.display = 'none';
-              }}
+              src="/favicon.svg" 
+              alt="SuiviDesk" 
+              className="h-8 w-8 rounded-xl shadow-md transition-transform hover:scale-105"
             />
-            <div className="hidden sm:block">
-              <div className="flex items-center space-x-2">
-                <span className="text-xl font-black tracking-tight text-[#0055A5] dark:text-[#00A3E0]">
-                  CNAS
-                </span>
-                <span className="text-xs px-2 py-0.5 rounded-full font-bold uppercase tracking-wider bg-blue-100 text-blue-800 dark:bg-blue-950/80 dark:text-cyan-300 border border-blue-200 dark:border-cyan-800/50">
-                  SuiviDesk
-                </span>
-              </div>
-              <p className="text-[10px] tracking-wide text-slate-500 dark:text-slate-400 font-medium">
-                Système Proactif de Suivi Opérationnel & Échéances
-              </p>
+            <div className="flex items-center space-x-2">
+              <span className="text-lg font-black tracking-tight bg-gradient-to-r from-[#0055A5] via-[#0072CE] to-[#00A3E0] dark:from-white dark:to-cyan-400 bg-clip-text text-transparent">
+                SuiviDesk
+              </span>
             </div>
           </div>
         </div>
 
-        {/* Center: Live Date & SQLite Status */}
-        <div className="hidden lg:flex items-center space-x-4">
-          <div className={`flex items-center space-x-2 px-3 py-1.5 rounded-lg text-xs font-medium ${
-            theme === 'dark' ? 'bg-slate-900/60 text-slate-300 border border-slate-800' : 'bg-slate-100/80 text-slate-700 border border-slate-200'
+        {/* Center: Clean Live Date */}
+        <div className="hidden md:flex items-center">
+          <div className={`flex items-center space-x-2 px-3 py-1 rounded-full text-xs font-medium ${
+            theme === 'dark' ? 'bg-slate-900/50 text-slate-400 border border-slate-800/80' : 'bg-slate-100/70 text-slate-600 border border-slate-200/80'
           }`}>
             <CalendarClock className="w-3.5 h-3.5 text-[#00A3E0]" />
             <span>{currentDate}</span>
           </div>
-
-          <div className={`flex items-center space-x-2 px-3 py-1.5 rounded-lg text-xs font-medium ${
-            theme === 'dark' ? 'bg-slate-900/60 text-emerald-400 border border-slate-800' : 'bg-emerald-50 text-emerald-700 border border-emerald-200'
-          }`}>
-            <ShieldCheck className="w-3.5 h-3.5 text-emerald-500 animate-pulse" />
-            <span>SQLite Local Connecté</span>
-          </div>
         </div>
 
-        {/* Right: Actions, Alerts Bell, Theme & New Task Button */}
-        <div className="flex items-center space-x-2 sm:space-x-3">
+        {/* Right: Actions, Alerts, Theme & New Task Button */}
+        <div className="flex items-center space-x-2 sm:space-x-2.5">
           
-          {/* Quick PDF Report Button */}
+          {/* Quick PDF Report */}
           <button
             onClick={onExportPdf}
             disabled={isExportingPdf}
-            title="Générer le Rapport Officiel CNAS en PDF (WeasyPrint)"
-            className={`flex items-center space-x-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all duration-150 ${
+            title="Exporter Rapport PDF"
+            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all duration-150 ${
               theme === 'dark'
-                ? 'bg-blue-950/40 text-cyan-300 hover:bg-blue-900/50 border border-cyan-800/50'
-                : 'bg-blue-50 text-[#0055A5] hover:bg-blue-100 border border-blue-200'
+                ? 'bg-slate-900/60 text-slate-300 hover:text-white hover:bg-slate-800 border border-slate-800'
+                : 'bg-slate-100 text-slate-700 hover:text-slate-900 hover:bg-slate-200 border border-slate-200'
             } active:scale-95 disabled:opacity-50`}
           >
             {isExportingPdf ? (
@@ -134,18 +112,18 @@ export const Navbar: React.FC<NavbarProps> = ({
             ) : (
               <FileDown className="w-3.5 h-3.5 text-[#00A3E0]" />
             )}
-            <span className="hidden md:inline">Rapport PDF</span>
+            <span className="hidden md:inline">PDF</span>
           </button>
 
           {/* Quick CSV Excel Export */}
           <button
             onClick={onExportCsv}
             disabled={isExportingCsv}
-            title="Exporter les données au format CSV compatible Microsoft Excel"
-            className={`flex items-center space-x-1.5 px-3 py-2 rounded-xl text-xs font-semibold transition-all duration-150 ${
+            title="Exporter format Excel (CSV)"
+            className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all duration-150 ${
               theme === 'dark'
-                ? 'bg-slate-800/60 text-slate-300 hover:bg-slate-800 border border-slate-700'
-                : 'bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-300'
+                ? 'bg-slate-900/60 text-slate-300 hover:text-white hover:bg-slate-800 border border-slate-800'
+                : 'bg-slate-100 text-slate-700 hover:text-slate-900 hover:bg-slate-200 border border-slate-200'
             } active:scale-95 disabled:opacity-50`}
           >
             {isExportingCsv ? (
@@ -153,25 +131,25 @@ export const Navbar: React.FC<NavbarProps> = ({
             ) : (
               <FileSpreadsheet className="w-3.5 h-3.5 text-emerald-500" />
             )}
-            <span className="hidden md:inline">Export Excel</span>
+            <span className="hidden md:inline">Excel</span>
           </button>
 
-          {/* Smart Alerts Bell */}
+          {/* Notifications Bell */}
           <button
             onClick={onOpenNotifications}
-            title="Alertes Échéances J-3 et Retards"
+            title="Alertes d'échéances"
             className={`relative p-2 rounded-xl transition-all duration-150 ${
               isNotifOpen
-                ? 'ring-2 ring-amber-500 bg-amber-500/20 text-amber-500'
+                ? 'ring-2 ring-amber-500 bg-amber-500/15 text-amber-500'
                 : theme === 'dark'
-                  ? 'bg-slate-800/80 text-slate-300 hover:bg-slate-700/80 border border-slate-700/60'
+                  ? 'bg-slate-900/60 text-slate-300 hover:bg-slate-800 border border-slate-800'
                   : 'bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200'
             }`}
           >
             <Bell className={`w-4 h-4 ${totalAlerts > 0 ? 'text-amber-500' : ''}`} />
             
             {totalAlerts > 0 && (
-              <span className="absolute -top-1 -right-1 flex h-4 min-w-4 px-1 items-center justify-center rounded-full bg-gradient-to-r from-amber-500 to-rose-600 text-[10px] font-black text-white shadow-md animate-pulse">
+              <span className="absolute -top-1 -right-1 flex h-4 min-w-4 px-1 items-center justify-center rounded-full bg-amber-500 text-[10px] font-black text-white shadow">
                 {totalAlerts}
               </span>
             )}
@@ -180,23 +158,23 @@ export const Navbar: React.FC<NavbarProps> = ({
           {/* Theme Switcher */}
           <button
             onClick={toggleTheme}
-            title={theme === 'dark' ? 'Basculer en Mode Clair (Frosted Alabaster)' : 'Basculer en Mode Sombre (Deep Obsidian)'}
+            title={theme === 'dark' ? 'Mode Clair' : 'Mode Sombre'}
             className={`p-2 rounded-xl transition-all duration-150 ${
               theme === 'dark'
-                ? 'bg-slate-800/80 text-amber-300 hover:bg-slate-700/80 border border-slate-700/60'
+                ? 'bg-slate-900/60 text-amber-300 hover:bg-slate-800 border border-slate-800'
                 : 'bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200'
             }`}
           >
             {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
           </button>
 
-          {/* Primary Action: Assign Task */}
+          {/* Primary Action: New Task */}
           <button
             onClick={onOpenAssignModal}
-            className="flex items-center space-x-1.5 px-4 py-2 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-[#0055A5] via-[#0072CE] to-[#00A3E0] shadow-lg shadow-blue-500/25 hover:shadow-cyan-500/35 hover:scale-[1.02] active:scale-95 transition-all duration-150"
+            className="flex items-center space-x-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-[#0055A5] to-[#00A3E0] shadow-sm hover:opacity-95 hover:scale-[1.02] active:scale-95 transition-all"
           >
             <Plus className="w-4 h-4" />
-            <span className="hidden sm:inline">Affecter Tâche</span>
+            <span className="hidden sm:inline">Nouvelle Tâche</span>
           </button>
 
         </div>

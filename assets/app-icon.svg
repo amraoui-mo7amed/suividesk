@@ -1,0 +1,43 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="100%" height="100%">
+  <defs>
+    <linearGradient id="appBgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0055A5" />
+      <stop offset="60%" stop-color="#003B73" />
+      <stop offset="100%" stop-color="#07162c" />
+    </linearGradient>
+    <linearGradient id="cyanStroke" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38bdf8" />
+      <stop offset="100%" stop-color="#00A3E0" />
+    </linearGradient>
+    <linearGradient id="glowG" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#00d2ff" stop-opacity="0.8" />
+      <stop offset="100%" stop-color="#0055A5" stop-opacity="0.2" />
+    </linearGradient>
+    <filter id="liquidGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="#00A3E0" flood-opacity="0.45" />
+    </filter>
+  </defs>
+
+  <!-- Outer Rounded Squircle Glass Tile -->
+  <rect x="8" y="8" width="112" height="112" rx="28" fill="url(#appBgGrad)" stroke="rgba(255, 255, 255, 0.16)" stroke-width="1.5" filter="url(#liquidGlow)" />
+  
+  <!-- Subtle Internal Reflection Highlight -->
+  <path d="M 16,36 C 16,24 24,16 36,16 L 92,16 C 104,16 112,24 112,36 C 112,48 85,38 64,44 C 40,50 16,56 16,36 Z" fill="url(#glowG)" opacity="0.35" />
+
+  <!-- Stylized Geometric "S" Desk & Monitor / Task Check Pulse -->
+  <g transform="translate(28, 28)" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Fluid Glass "S" Monogram -->
+    <path d="M 52,14 C 48,6 36,4 26,6 C 12,9 8,22 16,32 C 24,42 48,40 54,50 C 60,60 52,70 38,70 C 24,70 14,64 10,54" 
+          fill="none" 
+          stroke="url(#cyanStroke)" 
+          stroke-width="7" />
+    
+    <!-- Pulse Dynamic Tracking Dot / Spark -->
+    <circle cx="56" cy="14" r="5" fill="#38bdf8">
+      <animate attributeName="opacity" values="1;0.4;1" dur="2.5s" repeatCount="indefinite" />
+    </circle>
+
+    <!-- Bottom Check Notch Indicator -->
+    <path d="M 28,52 L 35,59 L 48,46" fill="none" stroke="#FFFFFF" stroke-width="4.5" stroke-linecap="round" stroke-linejoin="round" />
+  </g>
+</svg>

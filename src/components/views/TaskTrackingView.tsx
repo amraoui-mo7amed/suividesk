@@ -1,9 +1,6 @@
 import React from 'react';
 import { 
   Inbox, 
-  Plus, 
-  Sparkles, 
-  SlidersHorizontal,
   ClockAlert,
   AlertTriangle
 } from 'lucide-react';
@@ -41,35 +38,30 @@ export const TaskTrackingView: React.FC<TaskTrackingViewProps> = ({
   const overdueCount = tasks.filter(t => t.alert_level === 'overdue').length;
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4 overflow-visible">
       
-      {/* Top Banner with Quick Highlights */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+      {/* Clean Top Title */}
+      <div className="flex items-center justify-between">
         <div>
-          <div className="flex items-center space-x-2">
-            <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-              Suivi Opérationnel des Tâches
-            </h1>
-            <span className="hidden sm:inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-bold bg-blue-100 text-blue-800 dark:bg-blue-950 dark:text-cyan-300 border border-blue-200 dark:border-cyan-800">
-              Grille Liquid Glass
-            </span>
-          </div>
-          <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-            Surveillance en temps réel des flux de dossiers et gestion préventive des échéances CNAS
+          <h1 className="text-lg font-black text-slate-900 dark:text-white tracking-tight">
+            Suivi Opérationnel
+          </h1>
+          <p className="text-xs text-slate-400 mt-0.5">
+            Gestion préventive et suivi des échéances en temps réel
           </p>
         </div>
 
-        {/* Quick Highlights Summary */}
-        <div className="flex items-center space-x-2 self-stretch sm:self-auto">
+        {/* Minimal Alert Tags */}
+        <div className="flex items-center space-x-2">
           {j3Count > 0 && (
-            <div className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/30">
-              <ClockAlert className="w-3.5 h-3.5 animate-pulse" />
-              <span>{j3Count} à échéance J-3</span>
+            <div className="flex items-center space-x-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-amber-500/10 text-amber-500 border border-amber-500/20">
+              <ClockAlert className="w-3.5 h-3.5" />
+              <span>{j3Count} J-3</span>
             </div>
           )}
 
           {overdueCount > 0 && (
-            <div className="flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-bold bg-rose-500/10 text-rose-600 dark:text-rose-400 border border-rose-500/30">
+            <div className="flex items-center space-x-1 px-2.5 py-1 rounded-lg text-xs font-semibold bg-rose-500/10 text-rose-500 border border-rose-500/20">
               <AlertTriangle className="w-3.5 h-3.5" />
               <span>{overdueCount} en retard</span>
             </div>
@@ -77,7 +69,7 @@ export const TaskTrackingView: React.FC<TaskTrackingViewProps> = ({
         </div>
       </div>
 
-      {/* Comprehensive Multi-Filter Bar */}
+      {/* Multi-Filter Bar with explicit overflow */}
       <FilterBar
         filters={filters}
         onChangeFilters={onChangeFilters}
@@ -88,35 +80,35 @@ export const TaskTrackingView: React.FC<TaskTrackingViewProps> = ({
 
       {/* Cards Grid */}
       {tasks.length === 0 ? (
-        <div className={`p-16 rounded-3xl border text-center transition-all ${
+        <div className={`p-12 rounded-2xl border text-center transition-all ${
           theme === 'dark' ? 'glass-panel-dark border-slate-800' : 'glass-panel-light border-slate-200'
         }`}>
-          <div className="mx-auto w-14 h-14 rounded-2xl bg-blue-500/10 text-[#0055A5] dark:text-cyan-400 flex items-center justify-center mb-4">
-            <Inbox className="w-7 h-7" />
+          <div className="mx-auto w-10 h-10 rounded-xl bg-blue-500/10 text-[#0055A5] dark:text-cyan-400 flex items-center justify-center mb-3">
+            <Inbox className="w-5 h-5" />
           </div>
-          <h3 className="text-base font-bold text-slate-800 dark:text-slate-200">
-            Aucun dossier ne correspond aux critères
+          <h3 className="text-sm font-bold text-slate-800 dark:text-slate-200">
+            Aucun dossier trouvé
           </h3>
-          <p className="text-xs text-slate-500 dark:text-slate-400 max-w-sm mx-auto mt-1 mb-5">
-            Ajustez vos filtres de recherche ou affectez un nouveau dossier à un collaborateur.
+          <p className="text-xs text-slate-400 mt-1 mb-4">
+            Modifiez vos filtres ou affectez un nouveau dossier.
           </p>
-          <div className="flex items-center justify-center space-x-3">
+          <div className="flex items-center justify-center space-x-2">
             <button
               onClick={onResetFilters}
-              className="px-4 py-2 rounded-xl text-xs font-bold text-slate-700 dark:text-slate-200 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 transition-all"
+              className="px-3 py-1.5 rounded-xl text-xs font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 transition-all"
             >
-              Réinitialiser les filtres
+              Réinitialiser
             </button>
             <button
               onClick={onOpenAssignModal}
-              className="px-4 py-2 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-[#0055A5] to-[#00A3E0] shadow-md hover:scale-[1.02] active:scale-95 transition-all"
+              className="px-3 py-1.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-[#0055A5] to-[#00A3E0] shadow-sm hover:opacity-90 active:scale-95 transition-all"
             >
-              Affecter une Tâche
+              Nouvelle Tâche
             </button>
           </div>
         </div>
       ) : (
-        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4.5">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3.5">
           {tasks.map((task) => (
             <TaskCard
               key={task.id}

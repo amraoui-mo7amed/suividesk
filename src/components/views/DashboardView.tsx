@@ -8,19 +8,14 @@ import {
   ResponsiveContainer, 
   Cell, 
   PieChart, 
-  Pie, 
-  Legend 
+  Pie
 } from 'recharts';
 import { 
   ClockAlert, 
   AlertTriangle, 
-  CheckCircle2, 
   Layers, 
-  Activity, 
-  TrendingUp, 
-  Users, 
-  ShieldAlert,
-  Percent
+  CheckCircle2, 
+  Activity
 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { DashboardStats } from '../../types';
@@ -35,15 +30,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ stats, onFilterAle
 
   if (!stats) {
     return (
-      <div className="p-12 text-center text-slate-500 text-xs">
-        Chargement des métriques CNAS...
+      <div className="p-8 text-center text-slate-400 text-xs">
+        Chargement des métriques...
       </div>
     );
   }
 
   const { kpis, serviceBreakdown, agentWorkload } = stats;
-
-  const COLORS = ['#0055A5', '#00A3E0', '#f59e0b', '#ef4444', '#10b981', '#8b5cf6'];
 
   const statusPieData = [
     { name: 'Terminées', value: kpis.completed, color: '#10b981' },
@@ -51,262 +44,173 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ stats, onFilterAle
     { name: 'Alertes J-3', value: kpis.approachingJ3, color: '#f59e0b' },
     { name: 'En retard', value: kpis.overdue, color: '#ef4444' },
     { name: 'En attente', value: kpis.pending, color: '#94a3b8' },
-    { name: 'Bloquées', value: kpis.blocked, color: '#d946ef' },
+    { name: 'Bloquées', value: kpis.blocked, color: '#a855f7' },
   ].filter(d => d.value > 0);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-4">
       
       {/* Title */}
       <div>
-        <h1 className="text-xl sm:text-2xl font-black text-slate-900 dark:text-white tracking-tight">
-          Tableau de Bord & Analytique des Échéances
+        <h1 className="text-lg font-black text-slate-900 dark:text-white tracking-tight">
+          Tableau de Bord & Analytique
         </h1>
-        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-          Indicateurs de performance de la Caisse Nationale des Assurances Sociales
+        <p className="text-xs text-slate-400 mt-0.5">
+          Synthèse globale d'activité et charge de travail
         </p>
       </div>
 
-      {/* Top KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3.5">
+      {/* Simplified KPI Cards */}
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
         
         {/* Total Tasks */}
-        <div className={`p-4 rounded-2xl border transition-all ${
+        <div className={`p-3.5 rounded-2xl border transition-all ${
           theme === 'dark' ? 'glass-panel-dark border-slate-800' : 'glass-panel-light border-slate-200'
         }`}>
-          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 mb-2">
-            <span className="text-[11px] font-bold uppercase tracking-wider">Total Dossiers</span>
-            <Layers className="w-4 h-4 text-[#0055A5] dark:text-cyan-400" />
+          <div className="flex items-center justify-between text-slate-400 mb-1">
+            <span className="text-[10px] font-bold uppercase tracking-wider">Total</span>
+            <Layers className="w-3.5 h-3.5 text-[#0055A5] dark:text-cyan-400" />
           </div>
-          <div className="text-2xl font-black text-slate-900 dark:text-white">
+          <div className="text-xl font-black text-slate-900 dark:text-white">
             {kpis.total}
           </div>
-          <div className="text-[10px] text-slate-400 mt-1">
-            Actifs et clôturés
-          </div>
         </div>
 
-        {/* Dedicated 🟡 Alertes J-3 Actives */}
+        {/* J-3 Alerts */}
         <div 
           onClick={() => onFilterAlert('j-3')}
-          className={`p-4 rounded-2xl border cursor-pointer transition-all hover:scale-[1.02] active:scale-95 ${
+          className={`p-3.5 rounded-2xl border cursor-pointer transition-all hover:scale-[1.02] active:scale-95 ${
             theme === 'dark' 
-              ? 'bg-amber-950/20 border-amber-800/50 text-amber-300' 
-              : 'bg-amber-50/80 border-amber-300 text-amber-900'
+              ? 'bg-amber-950/20 border-amber-800/40 text-amber-300' 
+              : 'bg-amber-50 border-amber-200 text-amber-900'
           }`}
         >
-          <div className="flex items-center justify-between text-amber-600 dark:text-amber-400 mb-2">
-            <span className="text-[11px] font-bold uppercase tracking-wider">🟡 Alertes J-3</span>
-            <ClockAlert className="w-4 h-4 animate-bounce" />
+          <div className="flex items-center justify-between text-amber-600 dark:text-amber-400 mb-1">
+            <span className="text-[10px] font-bold uppercase tracking-wider">Alertes J-3</span>
+            <ClockAlert className="w-3.5 h-3.5" />
           </div>
-          <div className="text-2xl font-black text-amber-600 dark:text-amber-400">
+          <div className="text-xl font-black text-amber-600 dark:text-amber-400">
             {kpis.approachingJ3}
           </div>
-          <div className="text-[10px] text-amber-700/80 dark:text-amber-400/80 mt-1">
-            Échéance &lt; 72h • Cliquer pour voir
-          </div>
         </div>
 
-        {/* Dedicated 🔴 En Retard */}
+        {/* En Retard */}
         <div 
           onClick={() => onFilterAlert('overdue')}
-          className={`p-4 rounded-2xl border cursor-pointer transition-all hover:scale-[1.02] active:scale-95 ${
+          className={`p-3.5 rounded-2xl border cursor-pointer transition-all hover:scale-[1.02] active:scale-95 ${
             theme === 'dark' 
-              ? 'bg-rose-950/20 border-rose-800/50 text-rose-300' 
-              : 'bg-rose-50/80 border-rose-300 text-rose-900'
+              ? 'bg-rose-950/20 border-rose-800/40 text-rose-300' 
+              : 'bg-rose-50 border-rose-200 text-rose-900'
           }`}
         >
-          <div className="flex items-center justify-between text-rose-600 dark:text-rose-400 mb-2">
-            <span className="text-[11px] font-bold uppercase tracking-wider">🔴 Dépassées</span>
-            <AlertTriangle className="w-4 h-4" />
+          <div className="flex items-center justify-between text-rose-600 dark:text-rose-400 mb-1">
+            <span className="text-[10px] font-bold uppercase tracking-wider">En Retard</span>
+            <AlertTriangle className="w-3.5 h-3.5" />
           </div>
-          <div className="text-2xl font-black text-rose-600 dark:text-rose-400">
+          <div className="text-xl font-black text-rose-600 dark:text-rose-400">
             {kpis.overdue}
           </div>
-          <div className="text-[10px] text-rose-700/80 dark:text-rose-400/80 mt-1">
-            Retard avéré • Action urgente
-          </div>
         </div>
 
-        {/* En cours d'exécution */}
-        <div className={`p-4 rounded-2xl border transition-all ${
+        {/* En Traitement */}
+        <div className={`p-3.5 rounded-2xl border transition-all ${
           theme === 'dark' ? 'glass-panel-dark border-slate-800' : 'glass-panel-light border-slate-200'
         }`}>
-          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 mb-2">
-            <span className="text-[11px] font-bold uppercase tracking-wider">En Traitement</span>
-            <Activity className="w-4 h-4 text-blue-500" />
+          <div className="flex items-center justify-between text-slate-400 mb-1">
+            <span className="text-[10px] font-bold uppercase tracking-wider">En Cours</span>
+            <Activity className="w-3.5 h-3.5 text-blue-500" />
           </div>
-          <div className="text-2xl font-black text-slate-900 dark:text-white">
+          <div className="text-xl font-black text-slate-900 dark:text-white">
             {kpis.inProgress}
           </div>
-          <div className="text-[10px] text-slate-400 mt-1">
-            {kpis.blocked} dossier(s) bloqué(s)
-          </div>
         </div>
 
-        {/* Global Completion Rate */}
-        <div className={`p-4 rounded-2xl border transition-all col-span-2 lg:col-span-1 ${
+        {/* Completion Rate */}
+        <div className={`p-3.5 rounded-2xl border transition-all col-span-2 lg:col-span-1 ${
           theme === 'dark' ? 'glass-panel-dark border-slate-800' : 'glass-panel-light border-slate-200'
         }`}>
-          <div className="flex items-center justify-between text-slate-500 dark:text-slate-400 mb-2">
-            <span className="text-[11px] font-bold uppercase tracking-wider">Taux Clôture</span>
-            <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+          <div className="flex items-center justify-between text-slate-400 mb-1">
+            <span className="text-[10px] font-bold uppercase tracking-wider">Taux Clôture</span>
+            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
           </div>
-          <div className="text-2xl font-black text-emerald-600 dark:text-emerald-400 flex items-center">
+          <div className="text-xl font-black text-emerald-500">
             {kpis.completionRate}%
-          </div>
-          <div className="text-[10px] text-slate-400 mt-1">
-            {kpis.completed} tâches achevées
           </div>
         </div>
 
       </div>
 
-      {/* Charts Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Minimal Charts Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         
         {/* Workload per Agent */}
-        <div className={`p-5 rounded-3xl border transition-all ${
+        <div className={`p-4 rounded-2xl border transition-all ${
           theme === 'dark' ? 'glass-panel-dark border-slate-800' : 'glass-panel-light border-slate-200'
         }`}>
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h2 className="text-sm font-bold text-slate-900 dark:text-white">
-                Charge de Travail par Collaborateur
-              </h2>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                Nombre de dossiers actifs vs alertes critiques
-              </p>
-            </div>
-            <Users className="w-4 h-4 text-[#00A3E0]" />
-          </div>
+          <h2 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider mb-3">
+            Charge par Collaborateur
+          </h2>
 
-          <div className="h-64 w-full">
+          <div className="h-56 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={agentWorkload} margin={{ top: 10, right: 10, left: -20, bottom: 20 }}>
+              <BarChart data={agentWorkload} margin={{ top: 5, right: 5, left: -25, bottom: 20 }}>
                 <XAxis 
                   dataKey="name" 
-                  tick={{ fontSize: 10, fill: theme === 'dark' ? '#94a3b8' : '#64748b' }}
-                  angle={-25}
+                  tick={{ fontSize: 9, fill: theme === 'dark' ? '#94a3b8' : '#64748b' }}
+                  angle={-20}
                   textAnchor="end"
                   interval={0}
                 />
-                <YAxis tick={{ fontSize: 10, fill: theme === 'dark' ? '#94a3b8' : '#64748b' }} />
+                <YAxis tick={{ fontSize: 9, fill: theme === 'dark' ? '#94a3b8' : '#64748b' }} />
                 <Tooltip
                   contentStyle={{
                     backgroundColor: theme === 'dark' ? '#0f172a' : '#ffffff',
                     borderColor: theme === 'dark' ? '#334155' : '#e2e8f0',
-                    borderRadius: '12px',
+                    borderRadius: '8px',
                     fontSize: '11px'
                   }}
                 />
-                <Bar dataKey="active" name="Dossiers Actifs" fill="#0055A5" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="j3" name="Alertes J-3" fill="#f59e0b" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="overdue" name="En Retard" fill="#ef4444" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="active" name="Actifs" fill="#0055A5" radius={[3, 3, 0, 0]} />
+                <Bar dataKey="j3" name="J-3" fill="#f59e0b" radius={[3, 3, 0, 0]} />
+                <Bar dataKey="overdue" name="Retard" fill="#ef4444" radius={[3, 3, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </div>
 
         {/* Service Breakdown */}
-        <div className={`p-5 rounded-3xl border transition-all ${
+        <div className={`p-4 rounded-2xl border transition-all ${
           theme === 'dark' ? 'glass-panel-dark border-slate-800' : 'glass-panel-light border-slate-200'
         }`}>
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h2 className="text-sm font-bold text-slate-900 dark:text-white">
-                Répartition Opérationnelle par Pôle CNAS
-              </h2>
-              <p className="text-[11px] text-slate-500 dark:text-slate-400">
-                Volume de dossiers affectés par direction
-              </p>
-            </div>
-            <Layers className="w-4 h-4 text-[#00A3E0]" />
-          </div>
+          <h2 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider mb-3">
+            Dossiers par Pôle
+          </h2>
 
-          <div className="h-64 w-full">
+          <div className="h-56 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={serviceBreakdown} layout="vertical" margin={{ top: 5, right: 20, left: 20, bottom: 5 }}>
-                <XAxis type="number" tick={{ fontSize: 10, fill: theme === 'dark' ? '#94a3b8' : '#64748b' }} />
+              <BarChart data={serviceBreakdown} layout="vertical" margin={{ top: 5, right: 15, left: 10, bottom: 5 }}>
+                <XAxis type="number" tick={{ fontSize: 9, fill: theme === 'dark' ? '#94a3b8' : '#64748b' }} />
                 <YAxis 
                   dataKey="service" 
                   type="category" 
-                  tick={{ fontSize: 10, fill: theme === 'dark' ? '#94a3b8' : '#64748b' }}
-                  width={110}
+                  tick={{ fontSize: 9, fill: theme === 'dark' ? '#94a3b8' : '#64748b' }}
+                  width={100}
                 />
                 <Tooltip
                   contentStyle={{
                     backgroundColor: theme === 'dark' ? '#0f172a' : '#ffffff',
                     borderColor: theme === 'dark' ? '#334155' : '#e2e8f0',
-                    borderRadius: '12px',
+                    borderRadius: '8px',
                     fontSize: '11px'
                   }}
                 />
-                <Bar dataKey="active" name="Actifs" fill="#00A3E0" radius={[0, 4, 4, 0]} />
-                <Bar dataKey="completed" name="Terminés" fill="#10b981" radius={[0, 4, 4, 0]} />
+                <Bar dataKey="active" name="Actifs" fill="#00A3E0" radius={[0, 3, 3, 0]} />
+                <Bar dataKey="completed" name="Terminés" fill="#10b981" radius={[0, 3, 3, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
         </div>
 
-      </div>
-
-      {/* Status Donut Overview */}
-      <div className={`p-5 rounded-3xl border transition-all ${
-        theme === 'dark' ? 'glass-panel-dark border-slate-800' : 'glass-panel-light border-slate-200'
-      }`}>
-        <div className="flex items-center justify-between mb-2">
-          <div>
-            <h2 className="text-sm font-bold text-slate-900 dark:text-white">
-              Synthèse Globale de l'État d'Avancement
-            </h2>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400">
-              Ventilation par statut et seuils d'alertes
-            </p>
-          </div>
-          <TrendingUp className="w-4 h-4 text-emerald-500" />
-        </div>
-
-        <div className="flex flex-col sm:flex-row items-center justify-around py-4 gap-6">
-          <div className="w-56 h-56">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={statusPieData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={55}
-                  outerRadius={80}
-                  paddingAngle={4}
-                  dataKey="value"
-                >
-                  {statusPieData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-
-          {/* Legend Items */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 w-full max-w-lg">
-            {statusPieData.map((item, idx) => (
-              <div 
-                key={idx}
-                className={`p-3 rounded-2xl border flex items-center space-x-2.5 ${
-                  theme === 'dark' ? 'bg-slate-900/40 border-slate-800' : 'bg-slate-50 border-slate-200'
-                }`}
-              >
-                <span className="w-3 h-3 rounded-full flex-shrink-0" style={{ backgroundColor: item.color }} />
-                <div>
-                  <div className="text-[10px] text-slate-400 uppercase font-semibold">{item.name}</div>
-                  <div className="text-sm font-black text-slate-800 dark:text-slate-100">{item.value}</div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
       </div>
 
     </div>
