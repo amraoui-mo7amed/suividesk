@@ -17,7 +17,6 @@ import { TaskEditModal } from './components/TaskEditModal';
 import { TaskTrackingView } from './components/views/TaskTrackingView';
 import { DashboardView } from './components/views/DashboardView';
 import { CatalogView } from './components/views/CatalogView';
-import { EmployeeDirectoryView } from './components/views/EmployeeDirectoryView';
 
 const defaultFilters: TaskFilters = {
   search: '',
@@ -338,17 +337,6 @@ export const App: React.FC = () => {
               onRefreshTemplates={() => {
                 loadTemplates();
                 showToast('Catalogue actualisé.');
-              }}
-            />
-          )}
-
-          {activeTab === 'employees' && (
-            <EmployeeDirectoryView
-              employees={employees}
-              onSelectEmployeeTasks={handleSelectEmployeeTasks}
-              onRefreshEmployees={() => {
-                loadEmployees();
-                showToast('Annuaire actualisé.');
               }}
             />
           )}

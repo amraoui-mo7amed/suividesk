@@ -124,35 +124,28 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
             </div>
           )}
 
-          {/* Agent & Dates */}
-          <div className="grid grid-cols-2 gap-3 text-xs">
-            <div className={`p-3 rounded-xl border ${
-              theme === 'dark' ? 'bg-slate-900/40 border-slate-800' : 'bg-slate-50 border-slate-200'
-            }`}>
-              <div className="text-[10px] uppercase font-bold text-slate-400 mb-1 flex items-center space-x-1">
-                <User className="w-3 h-3 text-[#00A3E0]" />
-                <span>Agent</span>
+          {/* Dates & Planning */}
+          <div className={`p-3 rounded-xl border text-xs ${
+            theme === 'dark' ? 'bg-slate-900/40 border-slate-800' : 'bg-slate-50 border-slate-200'
+          }`}>
+            <div className="flex items-center justify-between">
+              <div>
+                <div className="text-[10px] uppercase font-bold text-slate-400 mb-0.5 flex items-center space-x-1">
+                  <Calendar className="w-3 h-3 text-[#00A3E0]" />
+                  <span>Date Début</span>
+                </div>
+                <div className="font-semibold text-slate-700 dark:text-slate-300">
+                  {task.date_debut_fr || task.date_debut}
+                </div>
               </div>
-              <div className="font-semibold text-slate-800 dark:text-slate-200">
-                {task.agent_prenom} {task.agent_nom}
-              </div>
-              <div className="text-[10px] text-slate-400 font-mono">
-                {task.agent_matricule}
-              </div>
-            </div>
 
-            <div className={`p-3 rounded-xl border ${
-              theme === 'dark' ? 'bg-slate-900/40 border-slate-800' : 'bg-slate-50 border-slate-200'
-            }`}>
-              <div className="text-[10px] uppercase font-bold text-slate-400 mb-1 flex items-center space-x-1">
-                <Calendar className="w-3 h-3 text-[#00A3E0]" />
-                <span>Échéance</span>
-              </div>
-              <div className="font-bold text-[#0055A5] dark:text-cyan-400">
-                {task.date_echeance_fr || task.date_echeance}
-              </div>
-              <div className="text-[10px] text-slate-400">
-                Début : {task.date_debut_fr || task.date_debut}
+              <div className="text-right">
+                <div className="text-[10px] uppercase font-bold text-slate-400 mb-0.5">
+                  Échéance Réglementaire
+                </div>
+                <div className="font-bold text-[#0055A5] dark:text-cyan-400">
+                  {task.date_echeance_fr || task.date_echeance}
+                </div>
               </div>
             </div>
           </div>

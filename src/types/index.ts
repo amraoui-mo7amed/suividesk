@@ -48,7 +48,7 @@ export interface TaskAssignment {
   service: CNASService | string;
   priorite: TaskPriority;
   statut: TaskStatus;
-  agent_id: number;
+  agent_id?: number | null;
   date_debut: string;
   date_echeance: string;
   date_completion?: string | null;

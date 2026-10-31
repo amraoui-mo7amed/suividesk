@@ -97,22 +97,6 @@ export const TaskCard: React.FC<TaskCardProps> = ({
         <h3 className="text-xs font-bold text-slate-900 dark:text-white line-clamp-2 leading-snug group-hover:text-[#0055A5] dark:group-hover:text-cyan-400 transition-colors">
           {task.titre}
         </h3>
-
-        {/* Employee & Start Date */}
-        <div className="mt-2.5 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
-          <div className="flex items-center space-x-1.5">
-            <div className="w-5 h-5 rounded-full bg-[#0055A5] text-white text-[9px] font-bold flex items-center justify-center">
-              {task.agent_prenom?.[0] || 'A'}{task.agent_nom?.[0] || 'G'}
-            </div>
-            <span className="font-semibold text-slate-700 dark:text-slate-300 text-[11px]">
-              {task.agent_prenom} {task.agent_nom}
-            </span>
-          </div>
-
-          <span className="text-[10px] font-mono text-slate-400">
-            {task.agent_matricule}
-          </span>
-        </div>
       </div>
 
       {/* Middle: Deadline & Alert Reminder Badge */}

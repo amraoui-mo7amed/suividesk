@@ -101,10 +101,6 @@ export const TaskAssignModal: React.FC<TaskAssignModalProps> = ({
       setErrorMsg('Veuillez indiquer l’intitulé.');
       return;
     }
-    if (!agentId) {
-      setErrorMsg('Veuillez sélectionner un collaborateur.');
-      return;
-    }
     if (!dateDebut || !dateEcheance) {
       setErrorMsg('Veuillez renseigner les dates.');
       return;
@@ -120,7 +116,7 @@ export const TaskAssignModal: React.FC<TaskAssignModalProps> = ({
           service,
           priorite,
           statut: 'En attente',
-          agent_id: Number(agentId),
+          agent_id: agentId ? Number(agentId) : null,
           date_debut: dateDebut,
           date_echeance: dateEcheance,
           reference_dossier: referenceDossier.trim() || null,
@@ -263,27 +259,14 @@ export const TaskAssignModal: React.FC<TaskAssignModalProps> = ({
             </div>
           </div>
 
-          {/* Priority & Assignee Agent Custom Select */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 overflow-visible">
-            <div className="overflow-visible">
-              <CustomSelect
-                label="Priorité *"
-                options={priorityOptions}
-                value={priorite}
-                onChange={(val) => setPriorite(val as TaskPriority)}
-              />
-            </div>
-
-            <div className="overflow-visible">
-              <CustomSelect
-                label="Collaborateur *"
-                options={employeeOptions}
-                value={agentId}
-                onChange={(val) => setAgentId(val)}
-                searchable
-                placeholder="Sélectionner un collaborateur..."
-              />
-            </div>
+          {/* Priority Select */}
+          <div className="overflow-visible">
+            <CustomSelect
+              label="Priorité *"
+              options={priorityOptions}
+              value={priorite}
+              onChange={(val) => setPriorite(val as TaskPriority)}
+            />
           </div>
 
           {/* Dates */}

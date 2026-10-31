@@ -69,12 +69,11 @@ export const TaskTrackingView: React.FC<TaskTrackingViewProps> = ({
         </div>
       </div>
 
-      {/* Multi-Filter Bar with explicit overflow */}
+      {/* Filter Bar with Modal Dialog */}
       <FilterBar
         filters={filters}
         onChangeFilters={onChangeFilters}
         onResetFilters={onResetFilters}
-        employees={employees}
         totalFilteredCount={tasks.length}
       />
 

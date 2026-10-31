@@ -189,25 +189,13 @@ export const TaskEditModal: React.FC<TaskEditModalProps> = ({
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3 overflow-visible">
-            <div className="overflow-visible">
-              <CustomSelect
-                label="Priorité"
-                options={priorityOptions}
-                value={priorite}
-                onChange={(val) => setPriorite(val as TaskPriority)}
-              />
-            </div>
-
-            <div className="overflow-visible">
-              <CustomSelect
-                label="Collaborateur"
-                options={employeeOptions}
-                value={agentId}
-                onChange={(val) => setAgentId(val)}
-                searchable
-              />
-            </div>
+          <div className="overflow-visible">
+            <CustomSelect
+              label="Priorité"
+              options={priorityOptions}
+              value={priorite}
+              onChange={(val) => setPriorite(val as TaskPriority)}
+            />
           </div>
 
           <div className="grid grid-cols-2 gap-3">

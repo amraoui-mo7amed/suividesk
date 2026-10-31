@@ -65,7 +65,7 @@ function initSchema(db: Database.Database) {
       service TEXT NOT NULL,
       priorite TEXT NOT NULL CHECK(priorite IN ('Basse', 'Moyenne', 'Haute', 'Urgente')),
       statut TEXT NOT NULL CHECK(statut IN ('En attente', 'En cours', 'Terminée', 'Bloquée')),
-      agent_id INTEGER NOT NULL REFERENCES employees(id) ON DELETE CASCADE,
+      agent_id INTEGER REFERENCES employees(id) ON DELETE SET NULL,
       date_debut TEXT NOT NULL,
       date_echeance TEXT NOT NULL,
       date_completion TEXT,
@@ -97,6 +97,100 @@ function addDays(baseDate: Date, days: number): string {
   return formatDate(d);
 }
 
-function seedInitialData(_db: Database.Database) {
-  // Pure clean database schema without any dump or mock data
+function seedInitialData(db: Database.Database) {
+  const tplCount = db.prepare('SELECT COUNT(*) as count FROM task_templates').get() as { count: number };
+  if (tplCount.count === 0) {
+    const insertTpl = db.prepare(`
+      INSERT INTO task_templates (code, titre, description, service, priorite_defaut, duree_estimee_jours, instructions_type)
+      VALUES (?, ?, ?, ?, ?, ?, ?)
+    `);
+
+    const templates = [
+      [
+        'TPL-REC-01',
+        'Mise en demeure pour non-déclaration DAS',
+        'Émission et notification des mises en demeure trimestrielles aux employeurs défaillants.',
+        'Recouvrement',
+        'Haute',
+        5,
+        'Vérifier l’historique des cotisations sur le portail télé-déclaration avant notification formelle par LRAR.'
+      ],
+      [
+        'TPL-REC-02',
+        'Contrôle sur pièces assiette de cotisation',
+        'Audit comptable et vérification des bases déclarées par les entreprises cotisantes.',
+        'Recouvrement',
+        'Urgente',
+        3,
+        'Confronter la balance générale de paie aux bordereaux CNAS.'
+      ],
+      [
+        'TPL-MED-01',
+        'Instruction accord préalable ALD',
+        'Examen du protocole thérapeutique pour affection de longue durée (100% CNAS).',
+        'Contrôle Médical',
+        'Urgente',
+        2,
+        'Contrôler le compte-rendu médical spécialisé et la conformité à la nomenclature nationale.'
+      ],
+      [
+        'TPL-MED-02',
+        'Convocation contre-visite arrêt de travail',
+        'Contrôle médical de légitimité suite à un arrêt maladie excédant 15 jours consécutifs.',
+        'Contrôle Médical',
+        'Moyenne',
+        4,
+        'Émettre la convocation sous 48h et consigner les conclusions médicales dans le dossier.'
+      ],
+      [
+        'TPL-PREST-01',
+        'Liquidation indemnités journalières de maternité',
+        'Vérification des conditions d’ouverture de droit et calcul du décompte des 14 semaines.',
+        'Prestations',
+        'Haute',
+        3,
+        'Attestation de salaire obligatoire signée par l’employeur et certificat d’accouchement.'
+      ],
+      [
+        'TPL-PREST-02',
+        'Renouvellement et réactivation Carte CHIFA',
+        'Résolution des rejets de facturation officinale et mise à jour de la puce CHIFA.',
+        'Prestations',
+        'Moyenne',
+        2,
+        'Mettre à jour l’ouverture des droits de l’assuré et de ses ayants droit.'
+      ],
+      [
+        'TPL-CONT-01',
+        'Rédaction mémoire en défense Tribunal Administratif',
+        'Préparation de la défense juridique de la caisse suite à un recours employeur.',
+        'Contentieux',
+        'Urgente',
+        4,
+        'Compiler les bordereaux de créances certifiés conformes et la jurisprudence applicable.'
+      ],
+      [
+        'TPL-INFO-01',
+        'Sauvegarde & maintenance serveur frontal CHIFA',
+        'Audit de disponibilité et redémarrage programmé des serveurs d’authentification.',
+        'Informatique',
+        'Haute',
+        1,
+        'Procédure hors heures de pointe avec validation des backups locaux et distants.'
+      ],
+      [
+        'TPL-RH-01',
+        'Bilan annuel des congés et gestion des titularisations',
+        'Vérification de l’ancienneté et préparation des commissions paritaires administratives.',
+        'Ressources Humaines',
+        'Basse',
+        7,
+        'Recueillir les avis hiérarchiques et préparer les états récapitulatifs.'
+      ]
+    ];
+
+    for (const tpl of templates) {
+      insertTpl.run(...tpl);
+    }
+  }
 }

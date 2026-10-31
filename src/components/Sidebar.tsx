@@ -3,7 +3,6 @@ import {
   LayoutGrid, 
   BarChart3, 
   BookOpenCheck, 
-  Users2, 
   ClockAlert,
   AlertTriangle,
   CalendarClock
@@ -11,7 +10,7 @@ import {
 import { useTheme } from '../context/ThemeContext';
 import { TaskAssignment } from '../types';
 
-export type ActiveTab = 'tracking' | 'dashboard' | 'catalog' | 'employees';
+export type ActiveTab = 'tracking' | 'dashboard' | 'catalog';
 
 interface SidebarProps {
   activeTab: ActiveTab;
@@ -67,11 +66,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
       id: 'catalog' as ActiveTab,
       label: 'Catalogue Tâches',
       icon: BookOpenCheck
-    },
-    {
-      id: 'employees' as ActiveTab,
-      label: 'Collaborateurs',
-      icon: Users2
     }
   ];
 

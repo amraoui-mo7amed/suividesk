@@ -6,7 +6,8 @@ import {
   ArrowRight, 
   Plus, 
   X,
-  ChevronDown
+  ChevronDown,
+  Users2
 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { Employee, CNASService } from '../../types';

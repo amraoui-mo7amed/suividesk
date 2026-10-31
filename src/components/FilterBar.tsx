@@ -1,17 +1,18 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   Search, 
-  RotateCcw
+  RotateCcw,
+  SlidersHorizontal,
+  X
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
-import { TaskFilters, Employee } from '../types';
-import { CustomSelect, Option } from './CustomSelect';
+import { TaskFilters } from '../types';
+import { FilterModal } from './FilterModal';
 
 interface FilterBarProps {
   filters: TaskFilters;
   onChangeFilters: (filters: TaskFilters) => void;
   onResetFilters: () => void;
-  employees: Employee[];
   totalFilteredCount: number;
 }
 
@@ -19,10 +20,10 @@ export const FilterBar: React.FC<FilterBarProps> = ({
   filters,
   onChangeFilters,
   onResetFilters,
-  employees,
   totalFilteredCount
 }) => {
   const { theme } = useTheme();
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const handleInputChange = (key: keyof TaskFilters, value: any) => {
     onChangeFilters({
@@ -31,182 +32,156 @@ export const FilterBar: React.FC<FilterBarProps> = ({
     });
   };
 
-  const isFiltered = 
-    filters.search !== '' ||
-    filters.statut !== 'Tous' ||
-    filters.alerte !== 'Toutes' ||
-    filters.service !== 'Tous' ||
-    filters.priorite !== 'Toutes' ||
-    filters.agent_id !== 'Tous' ||
-    filters.periode !== 'Toutes';
+  const activeFiltersCount = [
+    filters.statut !== 'Tous',
+    filters.alerte !== 'Toutes',
+    filters.service !== 'Tous',
+    filters.priorite !== 'Toutes',
+    filters.periode !== 'Toutes'
+  ].filter(Boolean).length;
 
-  // Filter options definitions
-  const statutOptions: Option[] = [
-    { value: 'Tous', label: 'Statut : Tous' },
-    { value: 'En attente', label: 'En attente' },
-    { value: 'En cours', label: 'En cours' },
-    { value: 'Terminée', label: 'Terminée' },
-    { value: 'En retard', label: 'En retard' },
-    { value: 'Bloquée', label: 'Bloquée' }
-  ];
-
-  const alerteOptions: Option[] = [
-    { value: 'Toutes', label: 'Alerte : Toutes' },
-    { value: 'j-3', label: '🟡 Échéances J-3', subtitle: 'Alerte préventive 72h' },
-    { value: 'overdue', label: '🔴 En retard', subtitle: 'Délai d’échéance dépassé' }
-  ];
-
-  const serviceOptions: Option[] = [
-    { value: 'Tous', label: 'Pôle : Tous' },
-    { value: 'Recouvrement', label: 'Recouvrement' },
-    { value: 'Prestations', label: 'Prestations' },
-    { value: 'Contrôle Médical', label: 'Contrôle Médical' },
-    { value: 'Contentieux', label: 'Contentieux' },
-    { value: 'Informatique', label: 'Informatique' },
-    { value: 'Ressources Humaines', label: 'Ressources Humaines (RH)' }
-  ];
-
-  const prioriteOptions: Option[] = [
-    { value: 'Toutes', label: 'Priorité : Toutes' },
-    { value: 'Urgente', label: 'Urgente' },
-    { value: 'Haute', label: 'Haute' },
-    { value: 'Moyenne', label: 'Moyenne' },
-    { value: 'Basse', label: 'Basse' }
-  ];
-
-  const agentOptions: Option[] = [
-    { value: 'Tous', label: 'Agent : Tous' },
-    ...employees.map((emp) => ({
-      value: String(emp.id),
-      label: `${emp.nom} ${emp.prenom}`,
-      subtitle: `${emp.service} • ${emp.matricule}`
-    }))
-  ];
-
-  const periodeOptions: Option[] = [
-    { value: 'Toutes', label: 'Période : Toutes' },
-    { value: 'aujourdhui', label: 'Aujourd’hui' },
-    { value: 'semaine', label: 'Cette semaine' },
-    { value: 'mois', label: 'Ce mois-ci' }
-  ];
+  const isFiltered = activeFiltersCount > 0 || filters.search !== '';
 
   return (
-    <div className={`p-3.5 rounded-2xl border transition-all duration-200 mb-5 overflow-visible relative z-20 ${
-      theme === 'dark' 
-        ? 'glass-panel-dark border-slate-800/80 bg-slate-900/50' 
-        : 'glass-panel-light border-slate-200/90 bg-white/80'
-    }`}>
-      {/* Top Line: Search & Counter */}
-      <div className="flex flex-col sm:flex-row items-center justify-between gap-3 mb-3 overflow-visible">
-        
-        {/* Minimal Search Bar */}
-        <div className="relative w-full sm:w-80">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-          <input
-            type="text"
-            value={filters.search}
-            onChange={(e) => handleInputChange('search', e.target.value)}
-            placeholder="Rechercher tâche, matricule, agent..."
-            className={`w-full pl-9 pr-7 py-1.5 rounded-xl text-xs font-medium transition-all ${
-              theme === 'dark' ? 'glass-input-dark' : 'glass-input-light'
-            }`}
-          />
-          {filters.search && (
+    <>
+      <div className={`p-3 rounded-2xl border transition-all duration-200 mb-5 relative ${
+        theme === 'dark' 
+          ? 'glass-panel-dark border-slate-800/80 bg-slate-900/50' 
+          : 'glass-panel-light border-slate-200/90 bg-white/80'
+      }`}>
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3">
+          
+          {/* Search Bar */}
+          <div className="relative flex-1 w-full sm:max-w-md">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
+            <input
+              type="text"
+              value={filters.search}
+              onChange={(e) => handleInputChange('search', e.target.value)}
+              placeholder="Rechercher par intitulé, référence..."
+              className={`w-full pl-9 pr-7 py-2 rounded-xl text-xs font-medium transition-all ${
+                theme === 'dark' ? 'glass-input-dark' : 'glass-input-light'
+              }`}
+            />
+            {filters.search && (
+              <button
+                onClick={() => handleInputChange('search', '')}
+                className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xs font-bold"
+              >
+                ✕
+              </button>
+            )}
+          </div>
+
+          {/* Action Buttons: Filter Modal Button & Reset */}
+          <div className="flex items-center space-x-2.5 w-full sm:w-auto justify-between sm:justify-end">
+            
+            {/* Filter Modal Trigger Button */}
             <button
-              onClick={() => handleInputChange('search', '')}
-              className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 text-xs font-bold"
+              onClick={() => setIsModalOpen(true)}
+              className={`flex items-center space-x-2 px-3.5 py-2 rounded-xl text-xs font-semibold transition-all border ${
+                activeFiltersCount > 0
+                  ? 'bg-[#0055A5] text-white border-[#0055A5] shadow-sm'
+                  : theme === 'dark'
+                    ? 'bg-slate-900 border-slate-700/80 text-slate-200 hover:border-slate-500'
+                    : 'bg-white border-slate-200 text-slate-700 hover:border-slate-300 shadow-sm'
+              }`}
             >
-              ✕
+              <SlidersHorizontal className="w-3.5 h-3.5" />
+              <span>Filtres</span>
+              {activeFiltersCount > 0 && (
+                <span className="px-1.5 py-0.2 rounded-full text-[10px] font-black bg-white text-[#0055A5]">
+                  {activeFiltersCount}
+                </span>
+              )}
             </button>
-          )}
+
+            {/* Total Results Count */}
+            <span className="text-xs text-slate-500 dark:text-slate-400 font-medium hidden md:inline">
+              <strong className="text-[#0055A5] dark:text-cyan-400 font-bold">{totalFilteredCount}</strong> dossier(s)
+            </span>
+
+            {/* Reset All Filters */}
+            {isFiltered && (
+              <button
+                onClick={onResetFilters}
+                title="Réinitialiser tous les filtres"
+                className="flex items-center space-x-1 px-2.5 py-1.5 rounded-xl text-xs font-semibold text-rose-500 hover:bg-rose-500/10 transition-colors"
+              >
+                <RotateCcw className="w-3.5 h-3.5" />
+                <span className="hidden sm:inline">Réinitialiser</span>
+              </button>
+            )}
+
+          </div>
+
         </div>
 
-        {/* Counter & Reset */}
-        <div className="flex items-center space-x-3 w-full sm:w-auto justify-between sm:justify-end">
-          <span className="text-xs text-slate-500 dark:text-slate-400 font-medium">
-            <strong className="text-[#0055A5] dark:text-cyan-400 font-bold">{totalFilteredCount}</strong> dossier(s)
-          </span>
+        {/* Active Filter Chips / Pills */}
+        {activeFiltersCount > 0 && (
+          <div className="flex flex-wrap items-center gap-1.5 mt-2.5 pt-2.5 border-t border-slate-200/50 dark:border-slate-800/60">
+            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mr-1">
+              Filtres actifs :
+            </span>
 
-          {isFiltered && (
-            <button
-              onClick={onResetFilters}
-              className="flex items-center space-x-1 px-2.5 py-1 rounded-lg text-xs font-semibold text-rose-500 hover:bg-rose-500/10 transition-colors"
-            >
-              <RotateCcw className="w-3 h-3" />
-              <span>Réinitialiser</span>
-            </button>
-          )}
-        </div>
+            {filters.statut !== 'Tous' && (
+              <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-lg text-[11px] font-semibold bg-blue-500/10 text-[#0055A5] dark:text-cyan-400 border border-blue-500/20">
+                <span>Statut : {filters.statut}</span>
+                <button onClick={() => handleInputChange('statut', 'Tous')} className="hover:text-rose-500 ml-1">
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            )}
+
+            {filters.alerte !== 'Toutes' && (
+              <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-lg text-[11px] font-semibold bg-amber-500/10 text-amber-600 dark:text-amber-400 border border-amber-500/20">
+                <span>Alerte : {filters.alerte === 'j-3' ? 'Échéances J-3' : 'En retard'}</span>
+                <button onClick={() => handleInputChange('alerte', 'Toutes')} className="hover:text-rose-500 ml-1">
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            )}
+
+            {filters.service !== 'Tous' && (
+              <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-lg text-[11px] font-semibold bg-blue-500/10 text-[#0055A5] dark:text-cyan-400 border border-blue-500/20">
+                <span>Pôle : {filters.service}</span>
+                <button onClick={() => handleInputChange('service', 'Tous')} className="hover:text-rose-500 ml-1">
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            )}
+
+            {filters.priorite !== 'Toutes' && (
+              <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-lg text-[11px] font-semibold bg-purple-500/10 text-purple-600 dark:text-purple-400 border border-purple-500/20">
+                <span>Priorité : {filters.priorite}</span>
+                <button onClick={() => handleInputChange('priorite', 'Toutes')} className="hover:text-rose-500 ml-1">
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            )}
+
+            {filters.periode !== 'Toutes' && (
+              <span className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-lg text-[11px] font-semibold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20">
+                <span>Période : {filters.periode}</span>
+                <button onClick={() => handleInputChange('periode', 'Toutes')} className="hover:text-rose-500 ml-1">
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            )}
+          </div>
+        )}
 
       </div>
 
-      {/* Selects Grid: Replaced with CustomSelect for full overflow, zero truncation, non-transparent solid popups */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 overflow-visible">
-        
-        {/* Statut CustomSelect */}
-        <div className="overflow-visible">
-          <CustomSelect
-            compact
-            options={statutOptions}
-            value={filters.statut}
-            onChange={(v) => handleInputChange('statut', v)}
-          />
-        </div>
-
-        {/* Alerte Échéance CustomSelect */}
-        <div className="overflow-visible">
-          <CustomSelect
-            compact
-            options={alerteOptions}
-            value={filters.alerte}
-            onChange={(v) => handleInputChange('alerte', v)}
-          />
-        </div>
-
-        {/* Service CustomSelect */}
-        <div className="overflow-visible">
-          <CustomSelect
-            compact
-            options={serviceOptions}
-            value={filters.service}
-            onChange={(v) => handleInputChange('service', v)}
-          />
-        </div>
-
-        {/* Priorité CustomSelect */}
-        <div className="overflow-visible">
-          <CustomSelect
-            compact
-            options={prioriteOptions}
-            value={filters.priorite}
-            onChange={(v) => handleInputChange('priorite', v)}
-          />
-        </div>
-
-        {/* Collaborateur CustomSelect with search and right align */}
-        <div className="overflow-visible">
-          <CustomSelect
-            compact
-            searchable
-            menuAlign="right"
-            options={agentOptions}
-            value={String(filters.agent_id)}
-            onChange={(v) => handleInputChange('agent_id', v)}
-          />
-        </div>
-
-        {/* Période CustomSelect with right align */}
-        <div className="overflow-visible">
-          <CustomSelect
-            compact
-            menuAlign="right"
-            options={periodeOptions}
-            value={filters.periode}
-            onChange={(v) => handleInputChange('periode', v)}
-          />
-        </div>
-
-      </div>
-    </div>
+      {/* Filter Modal */}
+      <FilterModal
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        filters={filters}
+        onChangeFilters={onChangeFilters}
+        onResetFilters={onResetFilters}
+        totalResultsCount={totalFilteredCount}
+      />
+    </>
   );
 };

@@ -6,7 +6,8 @@ import {
   ArrowRight, 
   Trash2, 
   X,
-  ChevronDown
+  ChevronDown,
+  BookOpenCheck
 } from 'lucide-react';
 import { useTheme } from '../../context/ThemeContext';
 import { TaskTemplate, TaskPriority, CNASService } from '../../types';

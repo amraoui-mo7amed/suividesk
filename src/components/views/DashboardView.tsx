@@ -143,58 +143,23 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ stats, onFilterAle
       {/* Minimal Charts Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         
-        {/* Workload per Agent */}
-        <div className={`p-4 rounded-2xl border transition-all ${
-          theme === 'dark' ? 'glass-panel-dark border-slate-800' : 'glass-panel-light border-slate-200'
-        }`}>
-          <h2 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider mb-3">
-            Charge par Collaborateur
-          </h2>
-
-          <div className="h-56 w-full">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={agentWorkload} margin={{ top: 5, right: 5, left: -25, bottom: 20 }}>
-                <XAxis 
-                  dataKey="name" 
-                  tick={{ fontSize: 9, fill: theme === 'dark' ? '#94a3b8' : '#64748b' }}
-                  angle={-20}
-                  textAnchor="end"
-                  interval={0}
-                />
-                <YAxis tick={{ fontSize: 9, fill: theme === 'dark' ? '#94a3b8' : '#64748b' }} />
-                <Tooltip
-                  contentStyle={{
-                    backgroundColor: theme === 'dark' ? '#0f172a' : '#ffffff',
-                    borderColor: theme === 'dark' ? '#334155' : '#e2e8f0',
-                    borderRadius: '8px',
-                    fontSize: '11px'
-                  }}
-                />
-                <Bar dataKey="active" name="Actifs" fill="#0055A5" radius={[3, 3, 0, 0]} />
-                <Bar dataKey="j3" name="J-3" fill="#f59e0b" radius={[3, 3, 0, 0]} />
-                <Bar dataKey="overdue" name="Retard" fill="#ef4444" radius={[3, 3, 0, 0]} />
-              </BarChart>
-            </ResponsiveContainer>
-          </div>
-        </div>
-
         {/* Service Breakdown */}
-        <div className={`p-4 rounded-2xl border transition-all ${
+        <div className={`p-4 rounded-2xl border transition-all lg:col-span-2 ${
           theme === 'dark' ? 'glass-panel-dark border-slate-800' : 'glass-panel-light border-slate-200'
         }`}>
           <h2 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider mb-3">
-            Dossiers par Pôle
+            Dossiers par Pôle d'Activité CNAS
           </h2>
 
-          <div className="h-56 w-full">
+          <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={serviceBreakdown} layout="vertical" margin={{ top: 5, right: 15, left: 10, bottom: 5 }}>
-                <XAxis type="number" tick={{ fontSize: 9, fill: theme === 'dark' ? '#94a3b8' : '#64748b' }} />
+              <BarChart data={serviceBreakdown} layout="vertical" margin={{ top: 5, right: 20, left: 20, bottom: 5 }}>
+                <XAxis type="number" tick={{ fontSize: 10, fill: theme === 'dark' ? '#94a3b8' : '#64748b' }} />
                 <YAxis 
                   dataKey="service" 
                   type="category" 
-                  tick={{ fontSize: 9, fill: theme === 'dark' ? '#94a3b8' : '#64748b' }}
-                  width={100}
+                  tick={{ fontSize: 10, fill: theme === 'dark' ? '#94a3b8' : '#64748b' }}
+                  width={130}
                 />
                 <Tooltip
                   contentStyle={{
@@ -204,8 +169,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ stats, onFilterAle
                     fontSize: '11px'
                   }}
                 />
-                <Bar dataKey="active" name="Actifs" fill="#00A3E0" radius={[0, 3, 3, 0]} />
-                <Bar dataKey="completed" name="Terminés" fill="#10b981" radius={[0, 3, 3, 0]} />
+                <Bar dataKey="active" name="En cours / Actifs" fill="#0055A5" radius={[0, 4, 4, 0]} />
+                <Bar dataKey="completed" name="Terminés" fill="#10b981" radius={[0, 4, 4, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>

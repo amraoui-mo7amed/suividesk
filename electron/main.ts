@@ -63,7 +63,7 @@ function registerIpcHandlers() {
         t.progression, t.notes, t.motif_blocage, t.created_at, t.updated_at,
         e.nom AS agent_nom, e.prenom AS agent_prenom, e.matricule AS agent_matricule, e.service AS agent_service, e.avatar AS agent_avatar
       FROM task_assignments t
-      JOIN employees e ON t.agent_id = e.id
+      LEFT JOIN employees e ON t.agent_id = e.id
       WHERE 1=1
     `;
     const params: any[] = [];
@@ -151,7 +151,7 @@ function registerIpcHandlers() {
         t.*,
         e.nom AS agent_nom, e.prenom AS agent_prenom, e.matricule AS agent_matricule, e.service AS agent_service
       FROM task_assignments t
-      JOIN employees e ON t.agent_id = e.id
+      LEFT JOIN employees e ON t.agent_id = e.id
       WHERE t.id = ?
     `).get(id) as any;
 
@@ -175,7 +175,7 @@ function registerIpcHandlers() {
       data.service,
       data.priorite || 'Moyenne',
       data.statut || 'En attente',
-      data.agent_id,
+      data.agent_id ? Number(data.agent_id) : null,
       data.date_debut,
       data.date_echeance,
       data.reference_dossier || null,
