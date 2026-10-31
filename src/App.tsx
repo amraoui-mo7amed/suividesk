@@ -264,9 +264,9 @@ export const App: React.FC = () => {
 
   return (
     <div 
-      className="min-h-screen flex flex-col transition-colors duration-300 relative text-slate-900 dark:text-slate-100"
+      className="min-h-screen flex flex-col transition-colors duration-300 relative text-slate-100"
       style={{
-        background: theme === 'dark' ? 'var(--bg-gradient-dark)' : 'var(--bg-gradient-light)'
+        background: 'var(--bg-gradient-dark)'
       }}
     >
       {/* Toast Alert Notification */}

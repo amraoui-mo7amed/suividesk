@@ -1,8 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { 
   Bell, 
-  Sun, 
-  Moon, 
   Plus, 
   FileDown, 
   FileSpreadsheet, 
@@ -182,19 +180,6 @@ export const Navbar: React.FC<NavbarProps> = ({
                 {totalAlerts}
               </span>
             )}
-          </button>
-
-          {/* Theme Switcher */}
-          <button
-            onClick={toggleTheme}
-            title={theme === 'dark' ? 'Mode Clair' : 'Mode Sombre'}
-            className={`p-2 rounded-xl transition-all duration-150 ${
-              theme === 'dark'
-                ? 'bg-slate-900/60 text-amber-300 hover:bg-slate-800 border border-slate-800'
-                : 'bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200'
-            }`}
-          >
-            {theme === 'dark' ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
           </button>
 
           {/* Primary Action: New Task */}

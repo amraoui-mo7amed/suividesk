@@ -25,8 +25,27 @@ export function getDatabase(): Database.Database {
 
   initSchema(dbInstance);
   seedInitialData(dbInstance);
+  purgeDumpData(dbInstance);
 
   return dbInstance;
+}
+
+function purgeDumpData(db: Database.Database) {
+  try {
+    // Purge any legacy employees (collaborators feature removed)
+    db.exec(`DELETE FROM employees;`);
+
+    // Purge all legacy dump/sample tasks from previous demo seeds
+    db.exec(`
+      DELETE FROM task_assignments WHERE reference_dossier IN (
+        'CONT-2026-042', 'AT-MP-2026-551', 'DOS-MED-7712', 'MIG-INF-2026-04',
+        'TICK-INF-5021', 'BORD-2026-REC-089', 'ACC-MED-9910', 'DOS-PREST-8842',
+        'BORD-2026-REC-012', 'RH-2026-TIT-03', 'REC-2026-CP-11', 'CHIFA-2026-REJ-88'
+      );
+    `);
+  } catch (err) {
+    console.error('Error in purgeDumpData:', err);
+  }
 }
 
 function initSchema(db: Database.Database) {
