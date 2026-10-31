@@ -1,11 +1,12 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   LayoutGrid, 
   BarChart3, 
   BookOpenCheck, 
   Users2, 
   ClockAlert,
-  AlertTriangle
+  AlertTriangle,
+  CalendarClock
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { TaskAssignment } from '../types';
@@ -26,6 +27,26 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onQuickFilterAlert
 }) => {
   const { theme } = useTheme();
+  const [currentDate, setCurrentDate] = useState<string>('');
+
+  useEffect(() => {
+    const updateTime = () => {
+      const now = new Date();
+      const options: Intl.DateTimeFormatOptions = { 
+        weekday: 'short', 
+        day: 'numeric', 
+        month: 'short',
+        hour: '2-digit',
+        minute: '2-digit'
+      };
+      const formatted = now.toLocaleDateString('fr-FR', options);
+      setCurrentDate(formatted.charAt(0).toUpperCase() + formatted.slice(1));
+    };
+
+    updateTime();
+    const timer = setInterval(updateTime, 30000);
+    return () => clearInterval(timer);
+  }, []);
 
   const j3Count = tasks.filter(t => t.alert_level === 'j-3').length;
   const overdueCount = tasks.filter(t => t.alert_level === 'overdue').length;
@@ -142,6 +163,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
           )}
         </div>
 
+      </div>
+
+      {/* Date badge at the bottom of the navigation bar */}
+      <div className="p-3 pt-0">
+        <div className={`flex items-center space-x-2 px-3 py-2 rounded-xl text-xs font-medium border shadow-sm ${
+          theme === 'dark'
+            ? 'bg-slate-900/90 border-slate-800 text-slate-300'
+            : 'bg-white border-slate-200 text-slate-700'
+        }`}>
+          <CalendarClock className="w-3.5 h-3.5 text-[#00A3E0] flex-shrink-0" />
+          <span className="truncate text-[11px] font-semibold">{currentDate}</span>
+        </div>
       </div>
 
       {/* Sidebar Footer */}

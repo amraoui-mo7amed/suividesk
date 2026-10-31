@@ -1,11 +1,11 @@
 import React from 'react';
 import { 
   Search, 
-  RotateCcw, 
-  ChevronDown
+  RotateCcw
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { TaskFilters, Employee } from '../types';
+import { CustomSelect, Option } from './CustomSelect';
 
 interface FilterBarProps {
   filters: TaskFilters;
@@ -39,6 +39,56 @@ export const FilterBar: React.FC<FilterBarProps> = ({
     filters.priorite !== 'Toutes' ||
     filters.agent_id !== 'Tous' ||
     filters.periode !== 'Toutes';
+
+  // Filter options definitions
+  const statutOptions: Option[] = [
+    { value: 'Tous', label: 'Statut : Tous' },
+    { value: 'En attente', label: 'En attente' },
+    { value: 'En cours', label: 'En cours' },
+    { value: 'Terminée', label: 'Terminée' },
+    { value: 'En retard', label: 'En retard' },
+    { value: 'Bloquée', label: 'Bloquée' }
+  ];
+
+  const alerteOptions: Option[] = [
+    { value: 'Toutes', label: 'Alerte : Toutes' },
+    { value: 'j-3', label: '🟡 Échéances J-3', subtitle: 'Alerte préventive 72h' },
+    { value: 'overdue', label: '🔴 En retard', subtitle: 'Délai d’échéance dépassé' }
+  ];
+
+  const serviceOptions: Option[] = [
+    { value: 'Tous', label: 'Pôle : Tous' },
+    { value: 'Recouvrement', label: 'Recouvrement' },
+    { value: 'Prestations', label: 'Prestations' },
+    { value: 'Contrôle Médical', label: 'Contrôle Médical' },
+    { value: 'Contentieux', label: 'Contentieux' },
+    { value: 'Informatique', label: 'Informatique' },
+    { value: 'Ressources Humaines', label: 'Ressources Humaines (RH)' }
+  ];
+
+  const prioriteOptions: Option[] = [
+    { value: 'Toutes', label: 'Priorité : Toutes' },
+    { value: 'Urgente', label: 'Urgente' },
+    { value: 'Haute', label: 'Haute' },
+    { value: 'Moyenne', label: 'Moyenne' },
+    { value: 'Basse', label: 'Basse' }
+  ];
+
+  const agentOptions: Option[] = [
+    { value: 'Tous', label: 'Agent : Tous' },
+    ...employees.map((emp) => ({
+      value: String(emp.id),
+      label: `${emp.nom} ${emp.prenom}`,
+      subtitle: `${emp.service} • ${emp.matricule}`
+    }))
+  ];
+
+  const periodeOptions: Option[] = [
+    { value: 'Toutes', label: 'Période : Toutes' },
+    { value: 'aujourdhui', label: 'Aujourd’hui' },
+    { value: 'semaine', label: 'Cette semaine' },
+    { value: 'mois', label: 'Ce mois-ci' }
+  ];
 
   return (
     <div className={`p-3.5 rounded-2xl border transition-all duration-200 mb-5 overflow-visible relative z-20 ${
@@ -90,118 +140,70 @@ export const FilterBar: React.FC<FilterBarProps> = ({
 
       </div>
 
-      {/* Selects Grid: Explicitly overflow-visible so native dropdown menus are never clipped */}
+      {/* Selects Grid: Replaced with CustomSelect for full overflow, zero truncation, non-transparent solid popups */}
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-2 overflow-visible">
         
-        {/* Statut Select */}
-        <div className="relative overflow-visible">
-          <select
+        {/* Statut CustomSelect */}
+        <div className="overflow-visible">
+          <CustomSelect
+            compact
+            options={statutOptions}
             value={filters.statut}
-            onChange={(e) => handleInputChange('statut', e.target.value)}
-            className={`w-full px-2.5 py-1.5 rounded-xl text-xs font-medium appearance-none pr-6 cursor-pointer ${
-              theme === 'dark' ? 'glass-input-dark' : 'glass-input-light'
-            }`}
-          >
-            <option value="Tous">Statut : Tous</option>
-            <option value="En attente">En attente</option>
-            <option value="En cours">En cours</option>
-            <option value="Terminée">Terminée</option>
-            <option value="En retard">En retard</option>
-            <option value="Bloquée">Bloquée</option>
-          </select>
-          <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+            onChange={(v) => handleInputChange('statut', v)}
+          />
         </div>
 
-        {/* Alerte Échéance Select */}
-        <div className="relative overflow-visible">
-          <select
+        {/* Alerte Échéance CustomSelect */}
+        <div className="overflow-visible">
+          <CustomSelect
+            compact
+            options={alerteOptions}
             value={filters.alerte}
-            onChange={(e) => handleInputChange('alerte', e.target.value)}
-            className={`w-full px-2.5 py-1.5 rounded-xl text-xs font-bold appearance-none pr-6 cursor-pointer ${
-              filters.alerte !== 'Toutes'
-                ? 'bg-amber-500/15 text-amber-600 dark:text-amber-400 border-amber-500/40'
-                : theme === 'dark' ? 'glass-input-dark' : 'glass-input-light'
-            }`}
-          >
-            <option value="Toutes">Alerte : Toutes</option>
-            <option value="j-3">🟡 Échéance J-3 (72h)</option>
-            <option value="overdue">🔴 En retard</option>
-          </select>
-          <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+            onChange={(v) => handleInputChange('alerte', v)}
+          />
         </div>
 
-        {/* Service Select */}
-        <div className="relative overflow-visible">
-          <select
+        {/* Service CustomSelect */}
+        <div className="overflow-visible">
+          <CustomSelect
+            compact
+            options={serviceOptions}
             value={filters.service}
-            onChange={(e) => handleInputChange('service', e.target.value)}
-            className={`w-full px-2.5 py-1.5 rounded-xl text-xs font-medium appearance-none pr-6 cursor-pointer ${
-              theme === 'dark' ? 'glass-input-dark' : 'glass-input-light'
-            }`}
-          >
-            <option value="Tous">Pôle : Tous</option>
-            <option value="Recouvrement">Recouvrement</option>
-            <option value="Prestations">Prestations</option>
-            <option value="Contrôle Médical">Contrôle Médical</option>
-            <option value="Contentieux">Contentieux</option>
-            <option value="Informatique">Informatique</option>
-            <option value="Ressources Humaines">RH</option>
-          </select>
-          <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+            onChange={(v) => handleInputChange('service', v)}
+          />
         </div>
 
-        {/* Priorité Select */}
-        <div className="relative overflow-visible">
-          <select
+        {/* Priorité CustomSelect */}
+        <div className="overflow-visible">
+          <CustomSelect
+            compact
+            options={prioriteOptions}
             value={filters.priorite}
-            onChange={(e) => handleInputChange('priorite', e.target.value)}
-            className={`w-full px-2.5 py-1.5 rounded-xl text-xs font-medium appearance-none pr-6 cursor-pointer ${
-              theme === 'dark' ? 'glass-input-dark' : 'glass-input-light'
-            }`}
-          >
-            <option value="Toutes">Priorité : Toutes</option>
-            <option value="Urgente">Urgente</option>
-            <option value="Haute">Haute</option>
-            <option value="Moyenne">Moyenne</option>
-            <option value="Basse">Basse</option>
-          </select>
-          <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+            onChange={(v) => handleInputChange('priorite', v)}
+          />
         </div>
 
-        {/* Collaborateur Select */}
-        <div className="relative overflow-visible">
-          <select
-            value={filters.agent_id}
-            onChange={(e) => handleInputChange('agent_id', e.target.value)}
-            className={`w-full px-2.5 py-1.5 rounded-xl text-xs font-medium appearance-none pr-6 cursor-pointer ${
-              theme === 'dark' ? 'glass-input-dark' : 'glass-input-light'
-            }`}
-          >
-            <option value="Tous">Agent : Tous</option>
-            {employees.map((emp) => (
-              <option key={emp.id} value={emp.id}>
-                {emp.nom} {emp.prenom}
-              </option>
-            ))}
-          </select>
-          <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+        {/* Collaborateur CustomSelect with search and right align */}
+        <div className="overflow-visible">
+          <CustomSelect
+            compact
+            searchable
+            menuAlign="right"
+            options={agentOptions}
+            value={String(filters.agent_id)}
+            onChange={(v) => handleInputChange('agent_id', v)}
+          />
         </div>
 
-        {/* Période Select */}
-        <div className="relative overflow-visible">
-          <select
+        {/* Période CustomSelect with right align */}
+        <div className="overflow-visible">
+          <CustomSelect
+            compact
+            menuAlign="right"
+            options={periodeOptions}
             value={filters.periode}
-            onChange={(e) => handleInputChange('periode', e.target.value)}
-            className={`w-full px-2.5 py-1.5 rounded-xl text-xs font-medium appearance-none pr-6 cursor-pointer ${
-              theme === 'dark' ? 'glass-input-dark' : 'glass-input-light'
-            }`}
-          >
-            <option value="Toutes">Période : Toutes</option>
-            <option value="aujourdhui">Aujourd'hui</option>
-            <option value="semaine">Cette semaine</option>
-            <option value="mois">Ce mois-ci</option>
-          </select>
-          <ChevronDown className="pointer-events-none absolute right-2 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-slate-400" />
+            onChange={(v) => handleInputChange('periode', v)}
+          />
         </div>
 
       </div>

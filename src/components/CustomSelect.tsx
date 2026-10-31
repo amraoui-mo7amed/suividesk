@@ -17,6 +17,8 @@ interface CustomSelectProps {
   label?: string;
   className?: string;
   searchable?: boolean;
+  compact?: boolean;
+  menuAlign?: 'left' | 'right';
 }
 
 export const CustomSelect: React.FC<CustomSelectProps> = ({
@@ -26,7 +28,9 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
   placeholder = 'Sélectionner...',
   label,
   className = '',
-  searchable = false
+  searchable = false,
+  compact = false,
+  menuAlign = 'left'
 }) => {
   const { theme } = useTheme();
   const [isOpen, setIsOpen] = useState(false);
@@ -62,27 +66,29 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
     : options;
 
   return (
-    <div className={`relative overflow-visible ${className}`} ref={containerRef}>
+    <div className={`relative overflow-visible ${className} ${isOpen ? 'z-50' : 'z-10'}`} ref={containerRef}>
       {label && (
         <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
           {label}
         </label>
       )}
 
-      {/* Trigger Button with Full Text Wrapping */}
+      {/* Trigger Button with Full Text Wrapping & Non-clipping */}
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className={`w-full text-left px-3 py-2 rounded-xl text-xs transition-all flex items-center justify-between gap-2 border ${
+        className={`w-full text-left rounded-xl transition-all flex items-center justify-between gap-1.5 border ${
+          compact ? 'px-2.5 py-1.5 text-xs' : 'px-3 py-2 text-xs'
+        } ${
           theme === 'dark' 
-            ? 'glass-input-dark bg-slate-900/80 border-slate-700/80 hover:border-cyan-500/50' 
-            : 'glass-input-light bg-white border-slate-300 hover:border-blue-400'
-        } ${isOpen ? 'ring-2 ring-[#0055A5]/40 border-[#0055A5]' : ''}`}
+            ? 'bg-slate-900 border-slate-700/80 text-slate-100 hover:border-cyan-500/50' 
+            : 'bg-white border-slate-300 text-slate-800 hover:border-blue-400'
+        } ${isOpen ? 'ring-2 ring-[#0055A5]/50 border-[#0055A5]' : ''}`}
       >
         <div className="flex-1 min-w-0 pr-1">
           {selectedOption ? (
-            <div className="whitespace-normal break-words leading-snug">
-              <span className="font-semibold text-slate-900 dark:text-slate-100">
+            <div className="whitespace-normal break-words leading-tight">
+              <span className={`font-semibold ${theme === 'dark' ? 'text-slate-100' : 'text-slate-900'}`}>
                 {selectedOption.label}
               </span>
               {selectedOption.subtitle && (
@@ -99,34 +105,47 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
         <ChevronDown className={`w-3.5 h-3.5 flex-shrink-0 text-slate-400 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`} />
       </button>
 
-      {/* Floating Glass Dropdown Menu */}
+      {/* Solid Opaque Floating Dropdown Menu (No Transparency, High Z-Index, Full Overflow) */}
       {isOpen && (
         <div 
-          className={`absolute left-0 right-0 top-full mt-1.5 z-50 rounded-2xl shadow-2xl border overflow-hidden transition-all ${
+          className={`absolute ${menuAlign === 'right' ? 'right-0' : 'left-0'} top-full mt-1.5 rounded-2xl shadow-2xl border transition-all ${
             theme === 'dark' 
-              ? 'glass-panel-dark bg-slate-950/98 border-slate-700/90 text-slate-100' 
-              : 'glass-panel-light bg-white/98 border-slate-200 text-slate-900 shadow-blue-900/10'
+              ? 'bg-[#0b1329] border-slate-700 text-slate-100 shadow-2xl shadow-black' 
+              : 'bg-white border-slate-200 text-slate-900 shadow-2xl shadow-blue-950/20'
           }`}
-          style={{ minWidth: '100%', maxHeight: '280px' }}
+          style={{ 
+            minWidth: '100%',
+            width: 'max-content',
+            maxWidth: 'min(90vw, 460px)',
+            maxHeight: '320px',
+            backgroundColor: theme === 'dark' ? '#0b1329' : '#ffffff',
+            opacity: 1,
+            zIndex: 9999
+          }}
         >
           {searchable && (
-            <div className="p-2 border-b border-slate-200 dark:border-slate-800">
+            <div className={`p-2 border-b ${theme === 'dark' ? 'border-slate-800 bg-[#080d1d]' : 'border-slate-100 bg-slate-50'} rounded-t-2xl`}>
               <input
                 type="text"
                 autoFocus
                 placeholder="Filtrer options..."
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                className={`w-full px-2.5 py-1.5 rounded-lg text-xs ${
-                  theme === 'dark' ? 'glass-input-dark' : 'glass-input-light'
+                className={`w-full px-2.5 py-1.5 rounded-lg text-xs outline-none ${
+                  theme === 'dark' 
+                    ? 'bg-slate-900 border border-slate-700 text-slate-100 placeholder-slate-500 focus:border-cyan-400' 
+                    : 'bg-white border border-slate-300 text-slate-900 placeholder-slate-400 focus:border-blue-500'
                 }`}
               />
             </div>
           )}
 
-          <div className="overflow-y-auto max-h-60 p-1.5 space-y-1">
+          <div 
+            className="overflow-y-auto max-h-64 p-1.5 space-y-1 rounded-b-2xl"
+            style={{ backgroundColor: theme === 'dark' ? '#0b1329' : '#ffffff' }}
+          >
             {filteredOptions.length === 0 ? (
-              <div className="px-3 py-2 text-xs text-slate-400 text-center">
+              <div className="px-3 py-3 text-xs text-slate-400 text-center italic">
                 Aucune option trouvée
               </div>
             ) : (
@@ -140,18 +159,18 @@ export const CustomSelect: React.FC<CustomSelectProps> = ({
                       setIsOpen(false);
                       setSearch('');
                     }}
-                    className={`px-3 py-2 rounded-xl text-xs cursor-pointer transition-colors flex items-start justify-between gap-2 ${
+                    className={`px-3 py-2 rounded-xl text-xs cursor-pointer transition-colors flex items-start justify-between gap-2.5 ${
                       isSelected
-                        ? 'bg-[#0055A5] text-white font-bold'
+                        ? 'bg-[#0055A5] text-white font-bold shadow-sm'
                         : theme === 'dark'
-                          ? 'hover:bg-slate-800/80 text-slate-200'
-                          : 'hover:bg-blue-50 text-slate-700'
+                          ? 'hover:bg-slate-800/90 text-slate-200'
+                          : 'hover:bg-blue-50 text-slate-800'
                     }`}
                   >
                     <div className="flex-1 whitespace-normal break-words leading-relaxed">
                       <div className="font-semibold">{opt.label}</div>
                       {opt.subtitle && (
-                        <div className={`text-[10px] mt-0.5 ${isSelected ? 'text-blue-100' : 'text-slate-400'}`}>
+                        <div className={`text-[10px] mt-0.5 leading-snug ${isSelected ? 'text-blue-100' : 'text-slate-400'}`}>
                           {opt.subtitle}
                         </div>
                       )}
