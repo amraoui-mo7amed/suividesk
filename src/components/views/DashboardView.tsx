@@ -126,11 +126,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ stats, onFilterAle
 
       </div>
 
-      {/* Minimal Charts Grid */}
+      {/* Charts Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         
         {/* Service Breakdown */}
-        <div className="p-4 rounded-2xl border border-slate-800 glass-panel-dark transition-all lg:col-span-2">
+        <div className="p-4 rounded-2xl border border-slate-800 glass-panel-dark transition-all">
           <h2 className="text-xs font-bold text-white uppercase tracking-wider mb-3">
             Dossiers par Pôle d'Activité CNAS
           </h2>
@@ -138,25 +138,76 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ stats, onFilterAle
           <div className="h-64 w-full">
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={serviceBreakdown} layout="vertical" margin={{ top: 5, right: 20, left: 20, bottom: 5 }}>
-                <XAxis type="number" tick={{ fontSize: 10, fill: theme === 'dark' ? '#94a3b8' : '#64748b' }} />
+                <XAxis type="number" tick={{ fontSize: 10, fill: '#94a3b8' }} />
                 <YAxis 
                   dataKey="service" 
                   type="category" 
-                  tick={{ fontSize: 10, fill: theme === 'dark' ? '#94a3b8' : '#64748b' }}
-                  width={130}
+                  tick={{ fontSize: 10, fill: '#cbd5e1' }}
+                  width={120}
                 />
                 <Tooltip
                   contentStyle={{
-                    backgroundColor: theme === 'dark' ? '#0f172a' : '#ffffff',
-                    borderColor: theme === 'dark' ? '#334155' : '#e2e8f0',
+                    backgroundColor: '#0b1329',
+                    borderColor: '#334155',
                     borderRadius: '8px',
-                    fontSize: '11px'
+                    fontSize: '11px',
+                    color: '#f8fafc'
                   }}
                 />
-                <Bar dataKey="active" name="En cours / Actifs" fill="#0055A5" radius={[0, 4, 4, 0]} />
+                <Bar dataKey="active" name="En cours / Actifs" fill="#00A3E0" radius={[0, 4, 4, 0]} />
                 <Bar dataKey="completed" name="Terminés" fill="#10b981" radius={[0, 4, 4, 0]} />
               </BarChart>
             </ResponsiveContainer>
+          </div>
+        </div>
+
+        {/* Status & Alerts Distribution */}
+        <div className="p-4 rounded-2xl border border-slate-800 glass-panel-dark transition-all">
+          <h2 className="text-xs font-bold text-white uppercase tracking-wider mb-3">
+            Distribution par Statut & Alertes
+          </h2>
+
+          <div className="h-64 w-full flex items-center justify-center">
+            {statusPieData.length === 0 ? (
+              <div className="text-xs text-slate-400 italic">Aucune donnée disponible</div>
+            ) : (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={statusPieData}
+                    cx="50%"
+                    cy="50%"
+                    innerRadius={55}
+                    outerRadius={85}
+                    paddingAngle={4}
+                    dataKey="value"
+                  >
+                    {statusPieData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip
+                    contentStyle={{
+                      backgroundColor: '#0b1329',
+                      borderColor: '#334155',
+                      borderRadius: '8px',
+                      fontSize: '11px',
+                      color: '#f8fafc'
+                    }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            )}
+          </div>
+          
+          {/* Status Legend Pills */}
+          <div className="flex flex-wrap items-center justify-center gap-2 pt-2 border-t border-slate-800">
+            {statusPieData.map((item) => (
+              <div key={item.name} className="flex items-center space-x-1.5 text-[11px] text-slate-300">
+                <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: item.color }} />
+                <span>{item.name} ({item.value})</span>
+              </div>
+            ))}
           </div>
         </div>
 

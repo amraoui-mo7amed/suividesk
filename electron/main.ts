@@ -361,7 +361,7 @@ function registerIpcHandlers() {
     const allTasks = db.prepare(`
       SELECT t.*, e.nom AS agent_nom, e.prenom AS agent_prenom, e.service AS agent_service
       FROM task_assignments t
-      JOIN employees e ON t.agent_id = e.id
+      LEFT JOIN employees e ON t.agent_id = e.id
     `).all() as any[];
 
     let total = allTasks.length;
@@ -399,22 +399,24 @@ function registerIpcHandlers() {
         serviceCounts[t.service].active++;
       }
 
-      // Group by agent
-      const agentKey = `${t.agent_prenom} ${t.agent_nom}`;
-      if (!agentWorkloadMap[agentKey]) {
-        agentWorkloadMap[agentKey] = {
-          name: agentKey,
-          service: t.agent_service,
-          active: 0,
-          j3: 0,
-          overdue: 0,
-          capacity: 10
-        };
-      }
-      if (t.statut !== 'Terminée') {
-        agentWorkloadMap[agentKey].active++;
-        if (alertInfo.alert_level === 'j-3') agentWorkloadMap[agentKey].j3++;
-        if (alertInfo.alert_level === 'overdue') agentWorkloadMap[agentKey].overdue++;
+      // Group by agent if assigned
+      if (t.agent_nom) {
+        const agentKey = `${t.agent_prenom || ''} ${t.agent_nom}`.trim();
+        if (!agentWorkloadMap[agentKey]) {
+          agentWorkloadMap[agentKey] = {
+            name: agentKey,
+            service: t.agent_service || t.service,
+            active: 0,
+            j3: 0,
+            overdue: 0,
+            capacity: 10
+          };
+        }
+        if (t.statut !== 'Terminée') {
+          agentWorkloadMap[agentKey].active++;
+          if (alertInfo.alert_level === 'j-3') agentWorkloadMap[agentKey].j3++;
+          if (alertInfo.alert_level === 'overdue') agentWorkloadMap[agentKey].overdue++;
+        }
       }
     }
 

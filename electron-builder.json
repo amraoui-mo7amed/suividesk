@@ -26,23 +26,28 @@
     "icon": "assets/icon.ico",
     "target": [
       {
-        "target": "portable",
+        "target": "nsis",
         "arch": ["x64"]
       },
       {
-        "target": "nsis",
+        "target": "portable",
         "arch": ["x64"]
       }
     ]
   },
-  "mac": {
-    "icon": "assets/icon.icns"
-  },
   "nsis": {
     "oneClick": false,
+    "perMachine": false,
     "allowToChangeInstallationDirectory": true,
-    "createDesktopShortcut": true,
+    "createDesktopShortcut": "always",
     "createStartMenuShortcut": true,
-    "shortcutName": "SuiviDesk"
+    "shortcutName": "SuiviDesk",
+    "artifactName": "SuiviDesk-Setup-${version}.exe"
+  },
+  "portable": {
+    "artifactName": "SuiviDesk-Portable-${version}.exe"
+  },
+  "mac": {
+    "icon": "assets/icon.icns"
   }
 }

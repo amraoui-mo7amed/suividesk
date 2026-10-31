@@ -65,14 +65,14 @@ export const Navbar: React.FC<NavbarProps> = ({
         ? 'glass-panel-dark border-slate-800/80 bg-slate-950/85 text-slate-100' 
         : 'glass-panel-light border-slate-200/90 bg-white/90 text-slate-800'
     }`}>
-      {/* Aligned to the left of the window without extra padding or margin */}
-      <div className="flex items-center justify-between px-4 py-2.5">
+      {/* Aligned to the absolute left of the window without padding or margin */}
+      <div className="flex items-center justify-between pl-2 pr-4 py-2">
         
         {/* Left: Custom Inline App Logo & SuiviDesk Brand */}
-        <div className="flex items-center space-x-3" style={{ WebkitAppRegion: 'no-drag' } as any}>
-          <div className="flex items-center space-x-2.5">
+        <div className="flex items-center space-x-2" style={{ WebkitAppRegion: 'no-drag' } as any}>
+          <div className="flex items-center space-x-2">
             <SuiviDeskLogo className="h-8 w-8 rounded-xl shadow-md transition-transform hover:scale-105" />
-            <div className="flex items-center space-x-2">
+            <div className="flex items-center">
               <span className="text-lg font-black tracking-tight text-white bg-gradient-to-r from-white via-cyan-200 to-cyan-400 bg-clip-text text-transparent">
                 SuiviDesk
               </span>
