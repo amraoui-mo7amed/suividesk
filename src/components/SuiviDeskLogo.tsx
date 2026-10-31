@@ -20,12 +20,12 @@ export const SuiviDeskLogo: React.FC<{ className?: string }> = ({ className = 'w
         </linearGradient>
       </defs>
 
-      {/* Solid Rounded Squircle Tile without edge whitespace */}
+      {/* Rounded Squircle Tile with Breathing Whitespace Margins */}
       <rect 
-        x="2" 
-        y="2" 
-        width="124" 
-        height="124" 
+        x="10" 
+        y="10" 
+        width="108" 
+        height="108" 
         rx="30" 
         fill="url(#logoBgGrad)" 
         stroke="#00A3E0" 
@@ -33,17 +33,17 @@ export const SuiviDeskLogo: React.FC<{ className?: string }> = ({ className = 'w
         strokeOpacity="0.3"
       />
 
-      {/* Stylized Pure Monogram S + Pulse Dot (no white notch, no white marks) */}
-      <g transform="translate(24, 20)" strokeLinecap="round" strokeLinejoin="round">
+      {/* Centered Monogram S + Cyan Pulse Dot */}
+      <g transform="translate(28, 22)" strokeLinecap="round" strokeLinejoin="round">
         <path 
-          d="M 58,16 C 52,6 38,4 28,6 C 14,9 10,24 20,36 C 30,48 58,46 64,58 C 70,70 60,82 44,82 C 28,82 16,74 12,62" 
+          d="M 52,14 C 48,6 36,4 26,6 C 12,9 8,22 16,32 C 24,42 48,40 54,50 C 60,60 52,70 38,70 C 24,70 14,64 10,54" 
           fill="none" 
           stroke="url(#logoCyanStroke)" 
-          strokeWidth="8.5" 
+          strokeWidth="8" 
         />
         
         {/* Cyan Spark Dot */}
-        <circle cx="62" cy="16" r="5.5" fill="#38bdf8" />
+        <circle cx="56" cy="14" r="5" fill="#38bdf8" />
       </g>
     </svg>
   );

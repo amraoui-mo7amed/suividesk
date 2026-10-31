@@ -1,6 +1,11 @@
-import { app, BrowserWindow, ipcMain, shell, Notification } from 'electron';
+import { app, BrowserWindow, ipcMain, shell, Notification, nativeImage } from 'electron';
 import path from 'path';
+import fs from 'fs';
 import { getDatabase } from './db.js';
+
+if (process.platform === 'win32') {
+  app.setAppUserModelId('dz.cnas.suividesk');
+}
 import { computeAlertStatus, scanActiveAlerts, checkAndNotify } from './alerts.js';
 import { generatePdfReport, exportCsvReport } from './pdfWorker.js';
 
@@ -13,14 +18,26 @@ let alertInterval: NodeJS.Timeout | null = null;
 
 const isDev = process.env.NODE_ENV !== 'production' && !app?.isPackaged;
 
+function getAppIcon() {
+  const possiblePaths = [
+    path.join(__dirname, '../assets/icon.ico'),
+    path.join(process.resourcesPath || '', 'assets/icon.ico'),
+    path.join(__dirname, '../assets/icon.png'),
+    path.join(process.resourcesPath || '', 'assets/icon.png')
+  ];
+  for (const p of possiblePaths) {
+    if (fs.existsSync(p)) return nativeImage.createFromPath(p);
+  }
+  return undefined;
+}
+
 function createWindow() {
-  const iconPath = process.platform === 'win32'
-    ? path.join(__dirname, '../assets/icon.ico')
-    : path.join(__dirname, '../assets/icon.png');
+  const appIcon = getAppIcon();
 
   if (process.platform === 'darwin' && app.dock) {
     try {
-      app.dock.setIcon(path.join(__dirname, '../assets/icon.png'));
+      const macIcon = path.join(__dirname, '../assets/icon.png');
+      if (fs.existsSync(macIcon)) app.dock.setIcon(macIcon);
     } catch (e) {
       console.error('Dock icon error:', e);
     }
@@ -33,7 +50,7 @@ function createWindow() {
     minHeight: 700,
     title: 'SuiviDesk',
     backgroundColor: '#0a0f1d',
-    icon: iconPath,
+    icon: appIcon,
     titleBarStyle: 'default',
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),

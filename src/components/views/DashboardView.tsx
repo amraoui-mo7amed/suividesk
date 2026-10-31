@@ -146,6 +146,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ stats, onFilterAle
                   width={120}
                 />
                 <Tooltip
+                  cursor={false}
                   contentStyle={{
                     backgroundColor: '#0b1329',
                     borderColor: '#334155',
