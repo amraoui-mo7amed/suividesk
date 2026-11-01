@@ -40,7 +40,9 @@ function purgeDumpData(db: Database.Database) {
       DELETE FROM task_assignments WHERE reference_dossier IN (
         'CONT-2026-042', 'AT-MP-2026-551', 'DOS-MED-7712', 'MIG-INF-2026-04',
         'TICK-INF-5021', 'BORD-2026-REC-089', 'ACC-MED-9910', 'DOS-PREST-8842',
-        'BORD-2026-REC-012', 'RH-2026-TIT-03', 'REC-2026-CP-11', 'CHIFA-2026-REJ-88'
+        'BORD-2026-REC-012', 'RH-2026-TIT-03', 'REC-2026-CP-11', 'CHIFA-2026-REJ-88',
+        'REC-2026-891', 'REC-2026-892', 'MED-2026-441', 'MED-2026-398',
+        'PRST-2026-552', 'CHIFA-2026-773', 'REC-2026-805', 'INF-2026-064', 'CONT-2026-119'
       );
     `);
   } catch (err) {
