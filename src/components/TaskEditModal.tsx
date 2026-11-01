@@ -111,11 +111,21 @@ export const TaskEditModal: React.FC<TaskEditModalProps> = ({
     { value: 'Basse', label: 'Basse' }
   ];
 
-  const employeeOptions: Option[] = employees.map((emp) => ({
-    value: String(emp.id),
-    label: `${emp.nom} ${emp.prenom}`,
-    subtitle: `Matricule : ${emp.matricule} • ${emp.service}`
-  }));
+  const employeeOptions: Option[] = [
+    { value: '', label: '-- Non assigné --' },
+    ...employees.map((emp) => ({
+      value: String(emp.id),
+      label: `${emp.nom} ${emp.prenom} (${emp.matricule})`,
+      subtitle: `Pôle : ${emp.service}`
+    }))
+  ];
+
+  const statusOptions: Option[] = [
+    { value: 'En attente', label: 'En attente' },
+    { value: 'En cours', label: 'En cours' },
+    { value: 'Terminée', label: 'Terminée' },
+    { value: 'Bloquée', label: 'Bloquée' }
+  ];
 
   return (
     <div className="fixed inset-0 z-50 overflow-y-auto flex items-center justify-center p-4">
@@ -145,98 +155,73 @@ export const TaskEditModal: React.FC<TaskEditModalProps> = ({
         )}
 
         <form onSubmit={handleSubmit} className="py-3 space-y-3.5 overflow-visible">
-          <div>
-            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
-              Intitulé *
-            </label>
-            <textarea
-              required
-              rows={2}
-              value={titre}
-              onChange={(e) => setTitre(e.target.value)}
-              className={`w-full px-3 py-2 rounded-xl text-xs font-semibold leading-relaxed resize-none ${
-                theme === 'dark' ? 'glass-input-dark' : 'glass-input-light'
-              }`}
-            />
-          </div>
-
-          <div className="grid grid-cols-2 gap-3 overflow-visible">
-            <div>
-              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
-                Réf. Dossier
-              </label>
-              <input
-                type="text"
-                value={referenceDossier}
-                onChange={(e) => setReferenceDossier(e.target.value)}
-                className={`w-full px-3 py-2 rounded-xl text-xs font-mono font-bold uppercase ${
-                  theme === 'dark' ? 'glass-input-dark' : 'glass-input-light'
-                }`}
-              />
-            </div>
-
-            <div className="overflow-visible">
-              <CustomSelect
-                label="Pôle / Service"
-                options={serviceOptions}
-                value={service}
-                onChange={(val) => setService(val)}
-              />
-            </div>
-          </div>
-
+          
+          {/* Collaborateur assigné */}
           <div className="overflow-visible">
             <CustomSelect
-              label="Priorité"
-              options={priorityOptions}
-              value={priorite}
-              onChange={(val) => setPriorite(val as TaskPriority)}
+              label="Collaborateur Assigné"
+              options={employeeOptions}
+              value={agentId}
+              onChange={(val) => {
+                setAgentId(val);
+                const emp = employees.find(e => String(e.id) === val);
+                if (emp) setService(emp.service);
+              }}
+              searchable
+              placeholder="Sélectionner le collaborateur..."
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
-                Date Début
-              </label>
-              <input
-                type="date"
-                required
-                value={dateDebut}
-                onChange={(e) => setDateDebut(e.target.value)}
-                className={`w-full px-3 py-1.5 rounded-xl text-xs font-medium ${
-                  theme === 'dark' ? 'glass-input-dark' : 'glass-input-light'
-                }`}
+          {/* Intitulé / Nom de la tâche */}
+          <div>
+            <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
+              Nom de la Tâche *
+            </label>
+            <input
+              type="text"
+              required
+              value={titre}
+              onChange={(e) => setTitre(e.target.value)}
+              className="w-full px-3 py-2 rounded-xl text-xs font-bold text-white glass-input-dark"
+            />
+          </div>
+
+          {/* Statut & Échéance */}
+          <div className="grid grid-cols-2 gap-3 overflow-visible">
+            <div className="overflow-visible">
+              <CustomSelect
+                label="Statut"
+                options={statusOptions}
+                value={statut}
+                onChange={(val) => setStatut(val as TaskStatus)}
               />
             </div>
 
             <div>
-              <label className="text-[10px] font-bold uppercase tracking-wider text-[#0055A5] dark:text-cyan-400 block mb-1">
-                Date Échéance
+              <label className="text-[10px] font-bold uppercase tracking-wider text-cyan-400 block mb-1">
+                Date Échéance (Deadline) *
               </label>
               <input
                 type="date"
                 required
                 value={dateEcheance}
                 onChange={(e) => setDateEcheance(e.target.value)}
-                className={`w-full px-3 py-1.5 rounded-xl text-xs font-bold text-[#0055A5] dark:text-cyan-300 ${
-                  theme === 'dark' ? 'glass-input-dark' : 'glass-input-light'
-                }`}
+                className="w-full px-3 py-1.5 rounded-xl text-xs font-bold text-cyan-300 glass-input-dark"
               />
             </div>
           </div>
 
+          {/* Description & Autres détails */}
           <div>
             <label className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">
-              Instructions & Consignes
+              Description & Autres Détails
             </label>
             <textarea
-              rows={2}
+              rows={3}
               value={description}
               onChange={(e) => setDescription(e.target.value)}
-              className={`w-full p-2.5 rounded-xl text-xs font-medium leading-relaxed ${
-                theme === 'dark' ? 'glass-input-dark' : 'glass-input-light'
-              }`}
+              placeholder="Consignes et détails de la tâche..."
+              className="w-full p-2.5 rounded-xl text-xs font-medium leading-relaxed resize-none glass-input-dark"
             />
           </div>
 

@@ -316,7 +316,19 @@ function registerIpcHandlers() {
       INSERT INTO employees (matricule, nom, prenom, email, telephone, service, poste, max_capacity)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)
     `);
-    const res = stmt.run(data.matricule, data.nom, data.prenom, data.email, data.telephone || '', data.service, data.poste, data.max_capacity || 10);
+    const emailVal = (data.email && data.email.trim()) 
+      ? data.email.trim() 
+      : `${(data.prenom || 'agent').toLowerCase().replace(/\s+/g, '')}.${(data.nom || 'cnas').toLowerCase().replace(/\s+/g, '')}@cnas.dz`;
+    const res = stmt.run(
+      data.matricule.trim().toUpperCase(),
+      data.nom.trim(),
+      data.prenom.trim(),
+      emailVal,
+      data.telephone || '',
+      data.service || 'Recouvrement',
+      data.poste || 'Agent',
+      data.max_capacity || 10
+    );
     return { success: true, id: res.lastInsertRowid };
   });
 

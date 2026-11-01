@@ -5,12 +5,13 @@ import {
   BookOpenCheck, 
   ClockAlert,
   AlertTriangle,
-  CalendarClock
+  CalendarClock,
+  Users2
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { TaskAssignment } from '../types';
 
-export type ActiveTab = 'tracking' | 'dashboard' | 'catalog';
+export type ActiveTab = 'tracking' | 'employees' | 'dashboard' | 'catalog';
 
 interface SidebarProps {
   activeTab: ActiveTab;
@@ -56,6 +57,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
       label: 'Suivi Opérationnel',
       icon: LayoutGrid,
       badge: tasks.length
+    },
+    {
+      id: 'employees' as ActiveTab,
+      label: 'Collaborateurs',
+      icon: Users2
     },
     {
       id: 'dashboard' as ActiveTab,

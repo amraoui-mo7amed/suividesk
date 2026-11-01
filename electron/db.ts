@@ -32,9 +32,6 @@ export function getDatabase(): Database.Database {
 
 function purgeDumpData(db: Database.Database) {
   try {
-    // Purge any legacy employees (collaborators feature removed)
-    db.exec(`DELETE FROM employees;`);
-
     // Purge all legacy dump/sample tasks from previous demo seeds
     db.exec(`
       DELETE FROM task_assignments WHERE reference_dossier IN (

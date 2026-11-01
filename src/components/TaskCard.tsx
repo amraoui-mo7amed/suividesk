@@ -7,7 +7,8 @@ import {
   Ban, 
   Calendar, 
   ArrowRight,
-  Edit3
+  Edit3,
+  User
 } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { TaskAssignment, TaskStatus } from '../types';
@@ -93,10 +94,28 @@ export const TaskCard: React.FC<TaskCardProps> = ({
           </span>
         </div>
 
+        {/* Assigned Employee */}
+        {(task.agent_nom || task.agent_prenom) && (
+          <div className="flex items-center space-x-1.5 mb-1.5 text-[11px] text-cyan-300 font-semibold">
+            <User className="w-3.5 h-3.5 text-cyan-400 flex-shrink-0" />
+            <span className="truncate">{task.agent_prenom} {task.agent_nom}</span>
+            {task.agent_matricule && (
+              <span className="text-[10px] text-slate-400 font-mono">({task.agent_matricule})</span>
+            )}
+          </div>
+        )}
+
         {/* Task Title */}
         <h3 className="text-xs font-bold text-white line-clamp-2 leading-snug group-hover:text-cyan-300 transition-colors">
           {task.titre}
         </h3>
+
+        {/* Description / other details */}
+        {task.description && (
+          <p className="text-[11px] text-slate-300 mt-1.5 line-clamp-2 leading-relaxed">
+            {task.description}
+          </p>
+        )}
       </div>
 
       {/* Middle: Deadline & Alert Reminder Badge */}

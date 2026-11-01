@@ -120,6 +120,25 @@ export const TaskDetailModal: React.FC<TaskDetailModalProps> = ({
             </div>
           )}
 
+          {/* Employee Section */}
+          {(task.agent_nom || task.agent_prenom) && (
+            <div className="p-3 rounded-xl border border-slate-800 bg-slate-900/60 flex items-center justify-between">
+              <div className="flex items-center space-x-2.5">
+                <div className="w-8 h-8 rounded-full bg-cyan-950/80 border border-cyan-800/60 text-cyan-300 flex items-center justify-center font-bold text-xs">
+                  {task.agent_prenom?.[0] || ''}{task.agent_nom?.[0] || ''}
+                </div>
+                <div>
+                  <div className="text-xs font-bold text-white">
+                    {task.agent_prenom} {task.agent_nom}
+                  </div>
+                  <div className="text-[10px] text-slate-400">
+                    Matricule : {task.agent_matricule || 'N/A'} • Pôle : {task.service}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           {/* Dates & Planning */}
           <div className={`p-3 rounded-xl border text-xs ${
             theme === 'dark' ? 'bg-slate-900/40 border-slate-800' : 'bg-slate-50 border-slate-200'

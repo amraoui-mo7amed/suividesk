@@ -15,6 +15,7 @@ import { TaskDetailModal } from './components/TaskDetailModal';
 import { TaskAssignModal } from './components/TaskAssignModal';
 import { TaskEditModal } from './components/TaskEditModal';
 import { TaskTrackingView } from './components/views/TaskTrackingView';
+import { EmployeeDirectoryView } from './components/views/EmployeeDirectoryView';
 import { DashboardView } from './components/views/DashboardView';
 import { CatalogView } from './components/views/CatalogView';
 
@@ -317,6 +318,24 @@ export const App: React.FC = () => {
               onEditTask={(task) => setSelectedTaskForEdit(task)}
               onViewDetails={(task) => setSelectedTaskForDetail(task)}
               onOpenAssignModal={() => {
+                setPreselectedTemplate(null);
+                setIsAssignModalOpen(true);
+              }}
+            />
+          )}
+
+          {activeTab === 'employees' && (
+            <EmployeeDirectoryView
+              employees={employees}
+              onSelectEmployeeTasks={(employeeId) => {
+                setFilters({ ...defaultFilters, agent_id: String(employeeId) });
+                setActiveTab('tracking');
+              }}
+              onRefreshEmployees={() => {
+                loadEmployees();
+                loadTasks();
+              }}
+              onOpenAddModal={() => {
                 setPreselectedTemplate(null);
                 setIsAssignModalOpen(true);
               }}

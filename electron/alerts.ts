@@ -90,7 +90,7 @@ export function scanActiveAlerts(db: Database.Database): AlertTask[] {
       t.date_debut, t.date_echeance, t.progression,
       e.nom AS agent_nom, e.prenom AS agent_prenom, e.matricule AS agent_matricule, e.service AS agent_service
     FROM task_assignments t
-    JOIN employees e ON t.agent_id = e.id
+    LEFT JOIN employees e ON t.agent_id = e.id
     WHERE t.statut != 'Terminée'
     ORDER BY t.date_echeance ASC
   `;

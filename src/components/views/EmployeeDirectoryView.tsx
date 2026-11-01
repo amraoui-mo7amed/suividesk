@@ -16,12 +16,14 @@ interface EmployeeDirectoryViewProps {
   employees: Employee[];
   onSelectEmployeeTasks: (employeeId: number) => void;
   onRefreshEmployees: () => void;
+  onOpenAddModal?: () => void;
 }
 
 export const EmployeeDirectoryView: React.FC<EmployeeDirectoryViewProps> = ({
   employees,
   onSelectEmployeeTasks,
-  onRefreshEmployees
+  onRefreshEmployees,
+  onOpenAddModal
 }) => {
   const { theme } = useTheme();
   const [search, setSearch] = useState('');
@@ -98,11 +100,11 @@ export const EmployeeDirectoryView: React.FC<EmployeeDirectoryViewProps> = ({
         </div>
 
         <button
-          onClick={() => setIsAddModalOpen(true)}
+          onClick={() => onOpenAddModal ? onOpenAddModal() : setIsAddModalOpen(true)}
           className="flex items-center space-x-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-[#0055A5] to-[#00A3E0] shadow-sm hover:opacity-90 active:scale-95 transition-all"
         >
           <Plus className="w-3.5 h-3.5" />
-          <span>Ajouter</span>
+          <span>Nouvel Employé & Tâche</span>
         </button>
       </div>
 
