@@ -1,11 +1,50 @@
-import Database from 'better-sqlite3';
 import path from 'path';
 import fs from 'fs';
 import { app } from 'electron';
 
-let dbInstance: Database.Database | null = null;
+export interface DbStatement {
+  all: (...params: any[]) => any[];
+  get: (...params: any[]) => any;
+  run: (...params: any[]) => { lastInsertRowid: number | bigint; changes: number | bigint };
+}
 
-export function getDatabase(): Database.Database {
+export interface DbInstance {
+  exec: (sql: string) => void;
+  prepare: (sql: string) => DbStatement;
+}
+
+let dbInstance: DbInstance | null = null;
+
+function openSqliteDatabase(dbPath: string): DbInstance {
+  try {
+    // Try better-sqlite3 first if native binary is available
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const BetterSqlite3 = require('better-sqlite3');
+    const db = new BetterSqlite3(dbPath);
+    db.exec('PRAGMA journal_mode = WAL;');
+    db.exec('PRAGMA foreign_keys = ON;');
+    return db;
+  } catch (err) {
+    // Fallback to Node/Electron built-in node:sqlite DatabaseSync
+    // eslint-disable-next-line @typescript-eslint/no-var-requires
+    const { DatabaseSync } = require('node:sqlite');
+    const db = new DatabaseSync(dbPath);
+    db.exec('PRAGMA journal_mode = WAL;');
+    db.exec('PRAGMA foreign_keys = ON;');
+    return db;
+  }
+}
+
+export function getUserFilesDirectory(): string {
+  const basePath = app ? app.getPath('userData') : path.join(process.cwd(), '.data');
+  const filesDir = path.join(basePath, 'employee_files');
+  if (!fs.existsSync(filesDir)) {
+    fs.mkdirSync(filesDir, { recursive: true });
+  }
+  return filesDir;
+}
+
+export function getDatabase(): DbInstance {
   if (dbInstance) return dbInstance;
 
   let dbPath: string;
@@ -19,196 +58,145 @@ export function getDatabase(): Database.Database {
     dbPath = path.join(process.cwd(), 'suividesk.sqlite');
   }
 
-  dbInstance = new Database(dbPath);
-  dbInstance.pragma('journal_mode = WAL');
-  dbInstance.pragma('foreign_keys = ON');
-
-  initSchema(dbInstance);
-  seedInitialData(dbInstance);
-  purgeDumpData(dbInstance);
+  dbInstance = openSqliteDatabase(dbPath);
+  initAndMigrateSchema(dbInstance);
 
   return dbInstance;
 }
 
-function purgeDumpData(db: Database.Database) {
-  try {
-    // Purge all legacy dump/sample tasks from previous demo seeds
+function initAndMigrateSchema(db: DbInstance) {
+  // Check if employees table exists and whether it already uses the v2 workflow schema
+  const empCols = db.prepare("PRAGMA table_info('employees')").all() as Array<{ name: string }>;
+
+  if (empCols.length > 0 && !empCols.some((c) => c.name === 'full_name')) {
+    // Migrate legacy v1 employees table to v2 optional workflow schema
+    db.exec('PRAGMA foreign_keys = OFF;');
     db.exec(`
-      DELETE FROM task_assignments WHERE reference_dossier IN (
-        'CONT-2026-042', 'AT-MP-2026-551', 'DOS-MED-7712', 'MIG-INF-2026-04',
-        'TICK-INF-5021', 'BORD-2026-REC-089', 'ACC-MED-9910', 'DOS-PREST-8842',
-        'BORD-2026-REC-012', 'RH-2026-TIT-03', 'REC-2026-CP-11', 'CHIFA-2026-REJ-88',
-        'REC-2026-891', 'REC-2026-892', 'MED-2026-441', 'MED-2026-398',
-        'PRST-2026-552', 'CHIFA-2026-773', 'REC-2026-805', 'INF-2026-064', 'CONT-2026-119'
+      CREATE TABLE IF NOT EXISTS employees_v2 (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        civilite TEXT DEFAULT '',
+        full_name TEXT DEFAULT '',
+        file_name TEXT DEFAULT '',
+        file_path TEXT DEFAULT '',
+        file_type TEXT DEFAULT '',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
+
+      INSERT INTO employees_v2 (id, civilite, full_name, created_at)
+      SELECT
+        id,
+        '',
+        TRIM(COALESCE(prenom, '') || ' ' || COALESCE(nom, '')),
+        COALESCE(created_at, CURRENT_TIMESTAMP)
+      FROM employees;
+
+      DROP TABLE employees;
+      ALTER TABLE employees_v2 RENAME TO employees;
+    `);
+    db.exec('PRAGMA foreign_keys = ON;');
+  } else if (empCols.length === 0) {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS employees (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        civilite TEXT DEFAULT '',
+        full_name TEXT DEFAULT '',
+        file_name TEXT DEFAULT '',
+        file_path TEXT DEFAULT '',
+        file_type TEXT DEFAULT '',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
       );
     `);
-  } catch (err) {
-    console.error('Error in purgeDumpData:', err);
   }
-}
 
-function initSchema(db: Database.Database) {
+  // Unique constraint on non-empty full_name (case-insensitive) while keeping full_name optional
   db.exec(`
-    CREATE TABLE IF NOT EXISTS employees (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      matricule TEXT UNIQUE NOT NULL,
-      nom TEXT NOT NULL,
-      prenom TEXT NOT NULL,
-      email TEXT NOT NULL,
-      telephone TEXT,
-      service TEXT NOT NULL,
-      poste TEXT NOT NULL,
-      avatar TEXT,
-      max_capacity INTEGER DEFAULT 10,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    );
-
-    CREATE TABLE IF NOT EXISTS task_templates (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      code TEXT UNIQUE NOT NULL,
-      titre TEXT NOT NULL,
-      description TEXT,
-      service TEXT NOT NULL,
-      priorite_defaut TEXT NOT NULL CHECK(priorite_defaut IN ('Basse', 'Moyenne', 'Haute', 'Urgente')),
-      duree_estimee_jours INTEGER DEFAULT 3,
-      instructions_type TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    );
-
-    CREATE TABLE IF NOT EXISTS task_assignments (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      template_id INTEGER REFERENCES task_templates(id) ON DELETE SET NULL,
-      titre TEXT NOT NULL,
-      description TEXT,
-      service TEXT NOT NULL,
-      priorite TEXT NOT NULL CHECK(priorite IN ('Basse', 'Moyenne', 'Haute', 'Urgente')),
-      statut TEXT NOT NULL CHECK(statut IN ('En attente', 'En cours', 'Terminée', 'Bloquée')),
-      agent_id INTEGER REFERENCES employees(id) ON DELETE SET NULL,
-      date_debut TEXT NOT NULL,
-      date_echeance TEXT NOT NULL,
-      date_completion TEXT,
-      reference_dossier TEXT,
-      progression INTEGER DEFAULT 0,
-      notes TEXT,
-      motif_blocage TEXT,
-      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-    );
-
-    CREATE INDEX IF NOT EXISTS idx_tasks_agent ON task_assignments(agent_id);
-    CREATE INDEX IF NOT EXISTS idx_tasks_statut ON task_assignments(statut);
-    CREATE INDEX IF NOT EXISTS idx_tasks_date_echeance ON task_assignments(date_echeance);
-    CREATE INDEX IF NOT EXISTS idx_tasks_service ON task_assignments(service);
+    CREATE UNIQUE INDEX IF NOT EXISTS idx_employees_unique_fullname
+    ON employees(LOWER(TRIM(full_name)))
+    WHERE full_name IS NOT NULL AND TRIM(full_name) != '';
   `);
-}
 
-function formatDate(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
-}
+  // Check if task_assignments table exists and whether it already uses the v2 workflow schema
+  const taskCols = db.prepare("PRAGMA table_info('task_assignments')").all() as Array<{ name: string }>;
 
-function addDays(baseDate: Date, days: number): string {
-  const d = new Date(baseDate.getTime());
-  d.setDate(d.getDate() + days);
-  return formatDate(d);
-}
+  if (taskCols.length > 0 && !taskCols.some((c) => c.name === 'etat_courrier')) {
+    db.exec('PRAGMA foreign_keys = OFF;');
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS task_assignments_v2 (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        agent_id INTEGER REFERENCES employees(id) ON DELETE CASCADE,
+        titre TEXT DEFAULT '',
+        sujet TEXT DEFAULT '',
+        personne_cible TEXT DEFAULT '',
+        reference_dossier TEXT DEFAULT '',
+        wilaya TEXT DEFAULT '',
+        priorite TEXT DEFAULT '',
+        date_courrier TEXT DEFAULT '',
+        date_distribution TEXT DEFAULT '',
+        date_debut TEXT DEFAULT '',
+        date_finale TEXT DEFAULT '',
+        etat_courrier TEXT DEFAULT '',
+        note TEXT DEFAULT '',
+        note_finale TEXT DEFAULT '',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
 
-function seedInitialData(db: Database.Database) {
-  const tplCount = db.prepare('SELECT COUNT(*) as count FROM task_templates').get() as { count: number };
-  if (tplCount.count === 0) {
-    const insertTpl = db.prepare(`
-      INSERT INTO task_templates (code, titre, description, service, priorite_defaut, duree_estimee_jours, instructions_type)
-      VALUES (?, ?, ?, ?, ?, ?, ?)
+      INSERT INTO task_assignments_v2 (
+        id, agent_id, titre, sujet, reference_dossier, priorite,
+        date_debut, date_finale, etat_courrier, note, created_at, updated_at
+      )
+      SELECT
+        id,
+        agent_id,
+        COALESCE(titre, ''),
+        COALESCE(description, ''),
+        COALESCE(reference_dossier, ''),
+        COALESCE(priorite, ''),
+        COALESCE(date_debut, ''),
+        COALESCE(date_echeance, ''),
+        CASE
+          WHEN statut = 'Terminée' THEN 'traite'
+          WHEN statut = 'En cours' THEN 'en_cours'
+          WHEN statut = 'En attente' OR statut = 'Bloquée' THEN 'non_traite'
+          ELSE ''
+        END,
+        COALESCE(notes, ''),
+        COALESCE(created_at, CURRENT_TIMESTAMP),
+        COALESCE(updated_at, CURRENT_TIMESTAMP)
+      FROM task_assignments;
+
+      DROP TABLE task_assignments;
+      ALTER TABLE task_assignments_v2 RENAME TO task_assignments;
     `);
-
-    const templates = [
-      [
-        'TPL-REC-01',
-        'Mise en demeure pour non-déclaration DAS',
-        'Émission et notification des mises en demeure trimestrielles aux employeurs défaillants.',
-        'Recouvrement',
-        'Haute',
-        5,
-        'Vérifier l’historique des cotisations sur le portail télé-déclaration avant notification formelle par LRAR.'
-      ],
-      [
-        'TPL-REC-02',
-        'Contrôle sur pièces assiette de cotisation',
-        'Audit comptable et vérification des bases déclarées par les entreprises cotisantes.',
-        'Recouvrement',
-        'Urgente',
-        3,
-        'Confronter la balance générale de paie aux bordereaux CNAS.'
-      ],
-      [
-        'TPL-MED-01',
-        'Instruction accord préalable ALD',
-        'Examen du protocole thérapeutique pour affection de longue durée (100% CNAS).',
-        'Contrôle Médical',
-        'Urgente',
-        2,
-        'Contrôler le compte-rendu médical spécialisé et la conformité à la nomenclature nationale.'
-      ],
-      [
-        'TPL-MED-02',
-        'Convocation contre-visite arrêt de travail',
-        'Contrôle médical de légitimité suite à un arrêt maladie excédant 15 jours consécutifs.',
-        'Contrôle Médical',
-        'Moyenne',
-        4,
-        'Émettre la convocation sous 48h et consigner les conclusions médicales dans le dossier.'
-      ],
-      [
-        'TPL-PREST-01',
-        'Liquidation indemnités journalières de maternité',
-        'Vérification des conditions d’ouverture de droit et calcul du décompte des 14 semaines.',
-        'Prestations',
-        'Haute',
-        3,
-        'Attestation de salaire obligatoire signée par l’employeur et certificat d’accouchement.'
-      ],
-      [
-        'TPL-PREST-02',
-        'Renouvellement et réactivation Carte CHIFA',
-        'Résolution des rejets de facturation officinale et mise à jour de la puce CHIFA.',
-        'Prestations',
-        'Moyenne',
-        2,
-        'Mettre à jour l’ouverture des droits de l’assuré et de ses ayants droit.'
-      ],
-      [
-        'TPL-CONT-01',
-        'Rédaction mémoire en défense Tribunal Administratif',
-        'Préparation de la défense juridique de la caisse suite à un recours employeur.',
-        'Contentieux',
-        'Urgente',
-        4,
-        'Compiler les bordereaux de créances certifiés conformes et la jurisprudence applicable.'
-      ],
-      [
-        'TPL-INFO-01',
-        'Sauvegarde & maintenance serveur frontal CHIFA',
-        'Audit de disponibilité et redémarrage programmé des serveurs d’authentification.',
-        'Informatique',
-        'Haute',
-        1,
-        'Procédure hors heures de pointe avec validation des backups locaux et distants.'
-      ],
-      [
-        'TPL-RH-01',
-        'Bilan annuel des congés et gestion des titularisations',
-        'Vérification de l’ancienneté et préparation des commissions paritaires administratives.',
-        'Ressources Humaines',
-        'Basse',
-        7,
-        'Recueillir les avis hiérarchiques et préparer les états récapitulatifs.'
-      ]
-    ];
-
-    for (const tpl of templates) {
-      insertTpl.run(...tpl);
-    }
+    db.exec('PRAGMA foreign_keys = ON;');
+  } else if (taskCols.length === 0) {
+    db.exec(`
+      CREATE TABLE IF NOT EXISTS task_assignments (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        agent_id INTEGER REFERENCES employees(id) ON DELETE CASCADE,
+        titre TEXT DEFAULT '',
+        sujet TEXT DEFAULT '',
+        personne_cible TEXT DEFAULT '',
+        reference_dossier TEXT DEFAULT '',
+        wilaya TEXT DEFAULT '',
+        priorite TEXT DEFAULT '',
+        date_courrier TEXT DEFAULT '',
+        date_distribution TEXT DEFAULT '',
+        date_debut TEXT DEFAULT '',
+        date_finale TEXT DEFAULT '',
+        etat_courrier TEXT DEFAULT '',
+        note TEXT DEFAULT '',
+        note_finale TEXT DEFAULT '',
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+        updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+      );
+    `);
   }
+
+  db.exec(`
+    CREATE INDEX IF NOT EXISTS idx_tasks_agent ON task_assignments(agent_id);
+    CREATE INDEX IF NOT EXISTS idx_tasks_etat ON task_assignments(etat_courrier);
+  `);
 }

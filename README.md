@@ -1,99 +1,44 @@
-# SuiviDesk
+# SuiviDesk — CNAS (v1.3.0)
 
-Application desktop de suivi opérationnel et de gestion des échéances pour la CNAS (Caisse Nationale des Assurances Sociales).
+Application bureautique native de suivi des collaborateurs, de gestion des courriers et de contrôle des délais de traitement pour la **CNAS** (*Caisse Nationale des Assurances Sociales des Travailleurs Salariés*).
 
-## Présentation
+## Nouveautés Majeures (v1.3.0)
 
-SuiviDesk permet aux services de la CNAS de planifier, d'assigner et de suivre le traitement des dossiers administratifs et contentieux avec un contrôle automatisé des délais réglementaires.
+- **Identité Visuelle CNAS Haute Contraste** : Interface claire institutionnelle inspirée du logo officiel `CNAS_logo.png`, sans barre de menu système superflue, avec fenêtre **À propos** dédiée.
+- **Répertoire des Collaborateurs en Cartes** : Tri alphabétique (`A → Z`) par défaut, recherche instantanée, filtres avancés, exports **PDF** & **CSV (Excel)** et actions rapides par icônes (*Modifier*, *Voir détails*, *Supprimer avec confirmation*).
+- **Dossier Collaborateur par Onglets** :
+  1. **Tâches Assignées** *(onglet par défaut)* : Cartes de suivi affichant automatiquement la **Durée de traitement (`Date finale − Date de début`) en jours**, recherche/filtres et modification en modale.
+  2. **Détails de l'Employé** : Profil complet et bilan statistique (`Total`, `Traités`, `En cours`, `Non traités`).
+  3. **Aperçu du Document** : Prévisualisation intégrée hors-ligne des fichiers **PDF**, **Word (`.docx`)** et **Excel (`.xlsx`, `.xls`, `.csv`)**.
+- **69 Wilayas d'Algérie & Champs Optionnels** : Tous les champs des formulaires sont optionnels (unicité garantie sur le nom complet lorsqu'il est renseigné) avec sélecteur recherchable des **69 Wilayas** (`01 - Adrar` → `69 - El Abiodh Sidi Cheikh`) et menus déroulants en portail sans débordement coupé.
+- **100% Autonome & Hors-Ligne** : Base SQLite locale et moteur d'export PDF natif intégré (aucune installation Python requise).
 
-### Fonctionnalités
+## Stack Technique
 
-- **Suivi opérationnel** : Gestion des dossiers par statut (`En attente`, `En cours`, `Terminée`, `Bloquée`) et par pôle d'activité (Recouvrement, Prestations, Contrôle Médical, Contentieux, Informatique, RH).
-- **Contrôle des échéances** : Calcul automatique des délais restants, alertes préventives à J-3 (72h) et détection des dépassements.
-- **Tableau de bord** : Statistiques d'activité, taux d'achèvement et suivi de la charge de travail par collaborateur.
-- **Catalogue de procédures** : Modèles de tâches types avec durées estimées et instructions de traitement.
-- **Annuaire des collaborateurs** : Gestion des agents, matricules et capacités de traitement.
-- **Exports** :
-  - Rapports officiels au format PDF (générés via WeasyPrint).
-  - Registre au format Excel (CSV encodé UTF-8 avec séparateur point-virgule).
-- **Thème** : Support des modes sombre et clair.
-
-## Stack technique
-
-- **Runtime** : Electron 45
+- **Runtime Desktop** : Electron 45
 - **Frontend** : React 19, TypeScript, Tailwind CSS 4, Lucide Icons
-- **Base de données** : SQLite (via `better-sqlite3`, mode WAL)
-- **Moteur PDF** : Python (WeasyPrint & Jinja2)
-- **Packaging** : electron-builder (NSIS & Portable pour Windows x64)
+- **Base de données** : SQLite locale (`%APPDATA%/suividesk/suividesk.sqlite`)
+- **Aperçu Documents** : PDF natif, `mammoth` (DOCX), `xlsx` (Excel/CSV)
+- **Packaging Installable** : `electron-builder` — Installateurs **NSIS Setup** (`x64` / `arm64`) et **MSI** (`x64`)
 
-## Structure du projet
-
-```
-suividesk/
-├── electron/           # Processus principal Electron, base de données et IPC
-├── src/                # Application React (composants, vues, contextes)
-├── python/             # Scripts et gabarits de génération PDF
-├── release/            # Binaires de distribution générés
-├── electron-builder.json
-├── package.json
-└── vite.config.ts
-```
-
-## Démarrage rapide
-
-### Prérequis
-
-- Node.js (version 20 ou supérieure recommandée)
-- npm
-- Python 3 (avec l'environnement virtuel `.venv` configuré pour WeasyPrint)
-
-### Installation
+## Développement & Compilation
 
 ```bash
+# Installer les dépendances
 npm install
-```
 
-### Développement
-
-Lancer l'application en mode développement :
-
-```bash
+# Lancer en mode développement (ou double-cliquer sur dev.bat sous Windows)
 npm run dev
-```
 
-### Compilation
-
-Générer les fichiers de production pour Electron et le frontend :
-
-```bash
+# Compiler le code TypeScript / Vite / Electron
 npm run build
-```
 
-Pour lancer la version compilée en local :
-
-```bash
-npm start
-```
-
-### Génération de l'exécutable Windows
-
-Pour créer l'installateur NSIS et la version portable pour Windows :
-
-```bash
+# Générer les installateurs Windows dans release/
 npm run package:win
 ```
 
-Les fichiers exécutables sont générés dans le dossier `release/` :
-- `SuiviDesk Setup 1.0.0.exe` (installateur NSIS)
-- `SuiviDesk 1.0.0.exe` (exécutable portable)
-
-## Stockage des données
-
-Les données sont enregistrées localement dans une base SQLite stockée dans le répertoire de données de l'application :
-- **macOS** : `~/Library/Application Support/suividesk/suividesk.sqlite`
-- **Windows** : `%APPDATA%/suividesk/suividesk.sqlite`
-- **Linux** : `~/.config/suividesk/suividesk.sqlite`
+Voir [CHANGELOG.md](./CHANGELOG.md) pour le détail complet des versions.
 
 ## Licence
 
-Usage interne CNAS.
+Usage interne CNAS — Tous droits réservés.

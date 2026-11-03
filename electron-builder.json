@@ -9,17 +9,17 @@
     "dist/**/*",
     "dist-electron/**/*",
     "assets/**/*",
-    "python/**/*",
-    "package.json"
+    "package.json",
+    "!node_modules/**/*"
   ],
   "extraResources": [
     {
-      "from": "python",
-      "to": "python"
-    },
-    {
       "from": "assets",
       "to": "assets"
+    },
+    {
+      "from": "public/CNAS_logo.png",
+      "to": "assets/CNAS_logo.png"
     }
   ],
   "win": {
@@ -27,10 +27,10 @@
     "target": [
       {
         "target": "nsis",
-        "arch": ["x64"]
+        "arch": ["x64", "arm64"]
       },
       {
-        "target": "portable",
+        "target": "msi",
         "arch": ["x64"]
       }
     ]
@@ -41,11 +41,18 @@
     "allowToChangeInstallationDirectory": true,
     "createDesktopShortcut": "always",
     "createStartMenuShortcut": true,
-    "shortcutName": "SuiviDesk",
-    "artifactName": "SuiviDesk-Setup-${version}.exe"
+    "shortcutName": "SuiviDesk CNAS",
+    "installerIcon": "assets/icon.ico",
+    "uninstallerIcon": "assets/icon.ico",
+    "artifactName": "SuiviDesk-Setup-${version}-${arch}.exe"
   },
-  "portable": {
-    "artifactName": "SuiviDesk-Portable-${version}.exe"
+  "msi": {
+    "oneClick": false,
+    "perMachine": false,
+    "createDesktopShortcut": true,
+    "createStartMenuShortcut": true,
+    "shortcutName": "SuiviDesk CNAS",
+    "artifactName": "SuiviDesk-Installer-${version}-${arch}.msi"
   },
   "mac": {
     "icon": "assets/icon.icns",

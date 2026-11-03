@@ -1,7 +1,7 @@
 {
   "name": "suividesk",
-  "version": "1.2.0",
-  "description": "SuiviDesk - Système Proactif de Suivi Opérationnel & Échéances CNAS",
+  "version": "1.3.0",
+  "description": "SuiviDesk - Système de Suivi des Collaborateurs & Traitement des Courriers CNAS",
   "main": "dist-electron/main.js",
   "scripts": {
     "dev:vite": "vite",
@@ -19,8 +19,7 @@
     "suivi-dossiers",
     "electron",
     "react",
-    "liquid-glass",
-    "weasyprint"
+    "sqlite"
   ],
   "author": "CNAS IT Team",
   "license": "ISC",
@@ -30,10 +29,12 @@
     "clsx": "^2.1.1",
     "framer-motion": "^14.9.0",
     "lucide-react": "^1.66.0",
+    "mammoth": "^1.13.0",
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "recharts": "^3.10.1",
-    "tailwind-merge": "^3.7.0"
+    "tailwind-merge": "^3.7.0",
+    "xlsx": "^0.18.5"
   },
   "devDependencies": {
     "@electron/rebuild": "^4.2.1",

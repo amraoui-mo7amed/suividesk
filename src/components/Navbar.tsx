@@ -1,194 +1,92 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { 
-  Bell, 
-  Plus, 
-  FileDown, 
-  FileSpreadsheet, 
-  Download,
-  ChevronDown,
-  Loader2
-} from 'lucide-react';
-import { useTheme } from '../context/ThemeContext';
-import { TaskAssignment } from '../types';
-import { SuiviDeskLogo } from './SuiviDeskLogo';
+import React from 'react';
+import { Info, ChevronRight, Users } from 'lucide-react';
+import { Employee } from '../types';
 
 interface NavbarProps {
-  urgentTasks: TaskAssignment[];
-  onOpenAssignModal: () => void;
-  onOpenNotifications: () => void;
-  isNotifOpen: boolean;
-  onExportPdf: () => void;
-  onExportCsv: () => void;
-  isExportingPdf: boolean;
-  isExportingCsv: boolean;
+  selectedEmployee: Employee | null;
+  onNavigateHome: () => void;
+  onOpenAbout: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
-  urgentTasks,
-  onOpenAssignModal,
-  onOpenNotifications,
-  isNotifOpen,
-  onExportPdf,
-  onExportCsv,
-  isExportingPdf,
-  isExportingCsv
+  selectedEmployee,
+  onNavigateHome,
+  onOpenAbout
 }) => {
-  const { theme, toggleTheme } = useTheme();
-  const [isExportMenuOpen, setIsExportMenuOpen] = useState(false);
-  const exportRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (exportRef.current && !exportRef.current.contains(event.target as Node)) {
-        setIsExportMenuOpen(false);
-      }
-    };
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setIsExportMenuOpen(false);
-    };
-
-    document.addEventListener('mousedown', handleClickOutside);
-    document.addEventListener('keydown', handleKeyDown);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('keydown', handleKeyDown);
-    };
-  }, []);
-
-  const overdueCount = urgentTasks.filter(t => t.alert_level === 'overdue').length;
-  const j3Count = urgentTasks.filter(t => t.alert_level === 'j-3').length;
-  const totalAlerts = overdueCount + j3Count;
+  const employeeTitle = selectedEmployee
+    ? [selectedEmployee.civilite, selectedEmployee.full_name || `Employé #${selectedEmployee.id}`]
+        .filter(Boolean)
+        .join(' ')
+    : null;
 
   return (
-    <header className={`sticky top-0 z-30 transition-colors duration-200 border-b overflow-visible select-none ${
-      theme === 'dark' 
-        ? 'glass-panel-dark border-slate-800/80 bg-slate-950/85 text-slate-100' 
-        : 'glass-panel-light border-slate-200/90 bg-white/90 text-slate-800'
-    }`}>
-      {/* Aligned to the absolute left of the window without padding or margin */}
-      <div className="flex items-center justify-between pl-2 pr-4 py-2">
-        
-        {/* Left: Custom Inline App Logo & SuiviDesk Brand */}
-        <div className="flex items-center space-x-2" style={{ WebkitAppRegion: 'no-drag' } as any}>
-          <div className="flex items-center space-x-2">
-            <SuiviDeskLogo className="h-8 w-8 rounded-xl shadow-md transition-transform hover:scale-105" />
-            <div className="flex items-center">
-              <span className="text-lg font-black tracking-tight text-white bg-gradient-to-r from-white via-cyan-200 to-cyan-400 bg-clip-text text-transparent">
-                SuiviDesk
-              </span>
+    <header className="sticky top-0 z-30 border-b-2 bg-white border-[#9EC3E6] text-slate-900 shadow-sm select-none">
+      <div className="max-w-[1600px] mx-auto px-4 sm:px-6 h-15 flex items-center justify-between gap-4">
+        {/* Left: CNAS Logo + Brand + Breadcrumb */}
+        <div className="flex items-center space-x-3 min-w-0">
+          <button
+            onClick={onNavigateHome}
+            className="flex items-center space-x-2.5 group focus:outline-none text-left cursor-pointer"
+            title="Accueil — Liste des employés"
+          >
+            <div className="w-10 h-10 rounded-full bg-white p-1 shadow-sm border-2 border-[#9EC3E6] flex items-center justify-center flex-shrink-0 transition-transform group-hover:scale-105">
+              <img
+                src="./CNAS_logo.png"
+                alt="CNAS"
+                className="w-full h-full object-contain"
+              />
             </div>
-          </div>
-        </div>
 
-        {/* Right: Export Dropdown, Alerts, Theme & New Task Button */}
-        <div className="flex items-center space-x-2 sm:space-x-2.5" style={{ WebkitAppRegion: 'no-drag' } as any}>
-          
-          {/* Unified Export Dropdown */}
-          <div className="relative overflow-visible" ref={exportRef}>
+            <div className="leading-tight">
+              <div className="flex items-center space-x-1.5">
+                <span className="text-base font-black tracking-tight text-[#003A6B]">
+                  SuiviDesk
+                </span>
+                <span className="px-2 py-0.5 rounded-md text-[10px] font-extrabold bg-[#005A9E] text-white">
+                  CNAS
+                </span>
+              </div>
+              <p className="text-[11px] font-semibold text-slate-600 hidden sm:block">
+                Suivi des Collaborateurs & Traitement des Courriers
+              </p>
+            </div>
+          </button>
+
+          {/* Breadcrumb Trail */}
+          <div className="hidden md:flex items-center space-x-1.5 pl-3 border-l-2 border-[#C6DDF2] text-xs min-w-0">
             <button
-              onClick={() => setIsExportMenuOpen(!isExportMenuOpen)}
-              disabled={isExportingPdf || isExportingCsv}
-              title="Exporter les données"
-              className={`flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold transition-all duration-150 border ${
-                theme === 'dark'
-                  ? 'bg-slate-900 border-slate-700/80 text-slate-200 hover:text-white hover:bg-slate-800'
-                  : 'bg-white border-slate-200 text-slate-700 hover:text-slate-900 hover:bg-slate-50 shadow-sm'
-              } ${isExportMenuOpen ? 'ring-2 ring-[#0055A5]/40 border-[#0055A5]' : ''} active:scale-95 disabled:opacity-50`}
+              onClick={onNavigateHome}
+              className={`flex items-center space-x-1.5 px-3 py-1 rounded-lg font-bold transition-colors cursor-pointer ${
+                !selectedEmployee
+                  ? 'bg-[#DCEBFA] text-[#003A6B] border border-[#93C0E8]'
+                  : 'text-slate-700 hover:bg-[#EAF4FC] hover:text-[#003A6B]'
+              }`}
             >
-              {isExportingPdf || isExportingCsv ? (
-                <Loader2 className="w-3.5 h-3.5 animate-spin text-[#00A3E0]" />
-              ) : (
-                <Download className="w-3.5 h-3.5 text-[#00A3E0]" />
-              )}
-              <span>Exporter</span>
-              <ChevronDown className={`w-3 h-3 text-slate-400 transition-transform duration-200 ${isExportMenuOpen ? 'rotate-180' : ''}`} />
+              <Users className="w-3.5 h-3.5" />
+              <span>Employés</span>
             </button>
 
-            {/* Solid Opaque Floating Export Menu */}
-            {isExportMenuOpen && (
-              <div 
-                className={`absolute right-0 top-full mt-1.5 w-64 rounded-2xl shadow-2xl border p-1.5 space-y-1 transition-all ${
-                  theme === 'dark'
-                    ? 'bg-[#0b1329] border-slate-700 text-slate-100 shadow-2xl shadow-black'
-                    : 'bg-white border-slate-200 text-slate-900 shadow-2xl shadow-blue-950/20'
-                }`}
-                style={{ 
-                  backgroundColor: theme === 'dark' ? '#0b1329' : '#ffffff',
-                  opacity: 1,
-                  zIndex: 9999 
-                }}
-              >
-                {/* PDF Export Button */}
-                <button
-                  onClick={() => {
-                    setIsExportMenuOpen(false);
-                    onExportPdf();
-                  }}
-                  disabled={isExportingPdf}
-                  className="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-left text-xs transition-colors hover:bg-slate-800/90 text-slate-100 disabled:opacity-50"
-                >
-                  <div className="w-8 h-8 rounded-lg bg-rose-500/20 text-rose-400 flex items-center justify-center flex-shrink-0">
-                    <FileDown className="w-4 h-4" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="font-bold text-white text-xs">Rapport Officiel PDF</div>
-                    <div className="text-[10px] text-slate-300">Mise en page certifiée WeasyPrint</div>
-                  </div>
-                </button>
-
-                {/* Excel Export Button */}
-                <button
-                  onClick={() => {
-                    setIsExportMenuOpen(false);
-                    onExportCsv();
-                  }}
-                  disabled={isExportingCsv}
-                  className="w-full flex items-center space-x-3 px-3 py-2.5 rounded-xl text-left text-xs transition-colors hover:bg-slate-800/90 text-slate-100 disabled:opacity-50"
-                >
-                  <div className="w-8 h-8 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center flex-shrink-0">
-                    <FileSpreadsheet className="w-4 h-4" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="font-bold text-white text-xs">Registre Excel (CSV)</div>
-                    <div className="text-[10px] text-slate-300">Format tableur conforme CNAS</div>
-                  </div>
-                </button>
-              </div>
+            {selectedEmployee && (
+              <>
+                <ChevronRight className="w-4 h-4 text-slate-500 flex-shrink-0" />
+                <span className="px-3 py-1 rounded-lg font-bold bg-[#005A9E] text-white truncate max-w-[260px]">
+                  {employeeTitle}
+                </span>
+              </>
             )}
           </div>
-
-          {/* Notifications Bell */}
-          <button
-            onClick={onOpenNotifications}
-            title="Alertes d'échéances"
-            className={`relative p-2 rounded-xl transition-all duration-150 ${
-              isNotifOpen
-                ? 'ring-2 ring-amber-500 bg-amber-500/15 text-amber-500'
-                : theme === 'dark'
-                  ? 'bg-slate-900/60 text-slate-300 hover:bg-slate-800 border border-slate-800'
-                  : 'bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200'
-            }`}
-          >
-            <Bell className={`w-4 h-4 ${totalAlerts > 0 ? 'text-amber-500' : ''}`} />
-            
-            {totalAlerts > 0 && (
-              <span className="absolute -top-1 -right-1 flex h-4 min-w-4 px-1 items-center justify-center rounded-full bg-amber-500 text-[10px] font-black text-white shadow">
-                {totalAlerts}
-              </span>
-            )}
-          </button>
-
-          {/* Primary Action: New Task */}
-          <button
-            onClick={onOpenAssignModal}
-            className="flex items-center space-x-1.5 px-3.5 py-1.5 rounded-xl text-xs font-bold text-white bg-gradient-to-r from-[#0055A5] to-[#00A3E0] shadow-sm hover:opacity-95 hover:scale-[1.02] active:scale-95 transition-all"
-          >
-            <Plus className="w-4 h-4" />
-            <span className="hidden sm:inline">Nouvelle Tâche</span>
-          </button>
-
         </div>
 
+        {/* Right: About Modal Button */}
+        <div className="flex items-center space-x-2">
+          <button
+            onClick={onOpenAbout}
+            className="flex items-center space-x-1.5 px-3.5 py-2 rounded-xl text-xs font-bold cnas-btn-secondary active:scale-95 cursor-pointer"
+          >
+            <Info className="w-4 h-4 text-[#005A9E]" />
+            <span>À propos</span>
+          </button>
+        </div>
       </div>
     </header>
   );

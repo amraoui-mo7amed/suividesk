@@ -1,423 +1,327 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useTheme } from './context/ThemeContext';
-import { 
-  TaskAssignment, 
-  Employee, 
-  TaskTemplate, 
-  TaskFilters, 
-  DashboardStats, 
-  TaskStatus 
-} from './types';
+import { CheckCircle2 } from 'lucide-react';
+import { Employee, TaskItem } from './types';
 import { Navbar } from './components/Navbar';
-import { Sidebar, ActiveTab } from './components/Sidebar';
-import { NotificationDrawer } from './components/NotificationDrawer';
-import { TaskDetailModal } from './components/TaskDetailModal';
-import { TaskAssignModal } from './components/TaskAssignModal';
-import { TaskEditModal } from './components/TaskEditModal';
-import { TaskTrackingView } from './components/views/TaskTrackingView';
-import { EmployeeDirectoryView } from './components/views/EmployeeDirectoryView';
-import { DashboardView } from './components/views/DashboardView';
-import { CatalogView } from './components/views/CatalogView';
-
-const defaultFilters: TaskFilters = {
-  search: '',
-  statut: 'Tous',
-  alerte: 'Toutes',
-  service: 'Tous',
-  priorite: 'Toutes',
-  agent_id: 'Tous',
-  periode: 'Toutes'
-};
+import { AboutModal } from './components/AboutModal';
+import { ConfirmModal } from './components/ConfirmModal';
+import { EmployeeModal } from './components/EmployeeModal';
+import { TaskModal } from './components/TaskModal';
+import { EmployeesListView } from './components/views/EmployeesListView';
+import { EmployeeDetailsView } from './components/views/EmployeeDetailsView';
 
 export const App: React.FC = () => {
-  const { theme } = useTheme();
-
-  // Navigation & Data States
-  const [activeTab, setActiveTab] = useState<ActiveTab>('tracking');
-  const [tasks, setTasks] = useState<TaskAssignment[]>([]);
-  const [allTasksUnfiltered, setAllTasksUnfiltered] = useState<TaskAssignment[]>([]);
+  // Core Data State
   const [employees, setEmployees] = useState<Employee[]>([]);
-  const [templates, setTemplates] = useState<TaskTemplate[]>([]);
-  const [dashboardStats, setDashboardStats] = useState<DashboardStats | null>(null);
+  const [selectedEmployeeId, setSelectedEmployeeId] = useState<number | null>(null);
+  const [employeeTasks, setEmployeeTasks] = useState<TaskItem[]>([]);
 
-  // Filters State
-  const [filters, setFilters] = useState<TaskFilters>(defaultFilters);
+  // Modal States
+  const [isAboutOpen, setIsAboutOpen] = useState(false);
+  const [isEmployeeModalOpen, setIsEmployeeModalOpen] = useState(false);
+  const [employeeToEdit, setEmployeeToEdit] = useState<Employee | null>(null);
+  const [employeeToDelete, setEmployeeToDelete] = useState<Employee | null>(null);
 
-  // Modals & Drawers States
-  const [isNotifOpen, setIsNotifOpen] = useState(false);
-  const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
-  const [selectedTaskForDetail, setSelectedTaskForDetail] = useState<TaskAssignment | null>(null);
-  const [selectedTaskForEdit, setSelectedTaskForEdit] = useState<TaskAssignment | null>(null);
-  const [preselectedTemplate, setPreselectedTemplate] = useState<TaskTemplate | null>(null);
+  const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
+  const [taskToEdit, setTaskToEdit] = useState<TaskItem | null>(null);
+  const [taskToDelete, setTaskToDelete] = useState<TaskItem | null>(null);
 
-  // Export States
+  // Loading & Export Feedback
+  const [isDeleting, setIsDeleting] = useState(false);
   const [isExportingPdf, setIsExportingPdf] = useState(false);
   const [isExportingCsv, setIsExportingCsv] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  const showToast = (msg: string) => {
+  const showToast = useCallback((msg: string) => {
     setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 4000);
-  };
-
-  // Load Tasks based on filters
-  const loadTasks = useCallback(async () => {
-    if (window.electronAPI) {
-      try {
-        const data = await window.electronAPI.getTasks(filters);
-        setTasks(data || []);
-      } catch (err) {
-        console.error('Erreur chargement tâches:', err);
-      }
-    }
-  }, [filters]);
-
-  // Load Unfiltered Tasks (for alert sentinel and bell counter)
-  const loadAllTasks = useCallback(async () => {
-    if (window.electronAPI) {
-      try {
-        const allData = await window.electronAPI.getTasks({});
-        setAllTasksUnfiltered(allData || []);
-      } catch (err) {
-        console.error('Erreur chargement total:', err);
-      }
-    }
+    setTimeout(() => {
+      setToastMessage((prev) => (prev === msg ? null : prev));
+    }, 3800);
   }, []);
 
-  // Load Employees
   const loadEmployees = useCallback(async () => {
-    if (window.electronAPI) {
-      try {
-        const emps = await window.electronAPI.getEmployees();
-        setEmployees(emps || []);
-      } catch (err) {
-        console.error('Erreur chargement collaborateurs:', err);
-      }
+    if (!window.electronAPI) return;
+    try {
+      const list = await window.electronAPI.getEmployees();
+      setEmployees(list || []);
+    } catch (err) {
+      console.error('Erreur chargement employés:', err);
     }
   }, []);
 
-  // Load Templates
-  const loadTemplates = useCallback(async () => {
-    if (window.electronAPI) {
-      try {
-        const tpls = await window.electronAPI.getTemplates();
-        setTemplates(tpls || []);
-      } catch (err) {
-        console.error('Erreur chargement catalogue:', err);
-      }
+  const loadTasksForEmployee = useCallback(async (empId: number) => {
+    if (!window.electronAPI) return;
+    try {
+      const list = await window.electronAPI.getTasksByEmployee(empId);
+      setEmployeeTasks(list || []);
+    } catch (err) {
+      console.error('Erreur chargement tâches employé:', err);
     }
   }, []);
 
-  // Load Dashboard Stats
-  const loadDashboardStats = useCallback(async () => {
-    if (window.electronAPI) {
-      try {
-        const stats = await window.electronAPI.getDashboardStats();
-        setDashboardStats(stats || null);
-      } catch (err) {
-        console.error('Erreur chargement stats:', err);
-      }
-    }
-  }, []);
-
-  // Initial Load and Auto-Refresh
   useEffect(() => {
-    loadAllTasks();
     loadEmployees();
-    loadTemplates();
-    loadDashboardStats();
+  }, [loadEmployees]);
 
-    const interval = setInterval(() => {
-      loadAllTasks();
-      loadTasks();
-      loadEmployees();
-      loadDashboardStats();
-    }, 45000); // 45s periodic refresh
-
-    return () => clearInterval(interval);
-  }, [loadAllTasks, loadTasks, loadEmployees, loadTemplates, loadDashboardStats]);
-
-  // Reload filtered tasks whenever filters change
   useEffect(() => {
-    loadTasks();
-  }, [loadTasks]);
+    if (selectedEmployeeId !== null) {
+      loadTasksForEmployee(selectedEmployeeId);
+    } else {
+      setEmployeeTasks([]);
+    }
+  }, [selectedEmployeeId, loadTasksForEmployee]);
 
-  // Handlers
-  const handleUpdateStatus = async (
-    id: number, 
-    status: TaskStatus, 
-    notes?: string, 
-    motifBlocage?: string, 
-    progression?: number
-  ) => {
-    if (window.electronAPI) {
-      await window.electronAPI.updateTaskStatus(id, status, notes, motifBlocage, progression);
-      loadTasks();
-      loadAllTasks();
-      loadEmployees();
-      loadDashboardStats();
-      showToast(`Statut mis à jour : ${status}`);
+  const selectedEmployee =
+    selectedEmployeeId !== null
+      ? employees.find((e) => e.id === selectedEmployeeId) || null
+      : null;
+
+  // Delete Employee Confirmed
+  const handleConfirmDeleteEmployee = async () => {
+    if (!employeeToDelete || !window.electronAPI) return;
+    try {
+      setIsDeleting(true);
+      const res = await window.electronAPI.deleteEmployee(employeeToDelete.id);
+      if (res.success) {
+        if (selectedEmployeeId === employeeToDelete.id) {
+          setSelectedEmployeeId(null);
+        }
+        await loadEmployees();
+        showToast('Employé supprimé avec succès.');
+      } else if (res.error) {
+        alert(res.error);
+      }
+    } finally {
+      setIsDeleting(false);
+      setEmployeeToDelete(null);
     }
   };
 
-  const handleDeleteTask = async (id: number) => {
-    if (window.electronAPI) {
-      await window.electronAPI.deleteTask(id);
-      loadTasks();
-      loadAllTasks();
-      loadEmployees();
-      loadDashboardStats();
-      showToast('Dossier supprimé.');
+  // Delete Task Confirmed
+  const handleConfirmDeleteTask = async () => {
+    if (!taskToDelete || !window.electronAPI) return;
+    try {
+      setIsDeleting(true);
+      const res = await window.electronAPI.deleteTask(taskToDelete.id);
+      if (res.success) {
+        if (selectedEmployeeId !== null) {
+          await loadTasksForEmployee(selectedEmployeeId);
+        }
+        await loadEmployees();
+        showToast('Tâche supprimée avec succès.');
+      } else if (res.error) {
+        alert(res.error);
+      }
+    } finally {
+      setIsDeleting(false);
+      setTaskToDelete(null);
     }
   };
 
-  const handleQuickFilterAlert = (alertType: 'j-3' | 'overdue') => {
-    setActiveTab('tracking');
-    setFilters({
-      ...defaultFilters,
-      alerte: alertType
-    });
-  };
-
-  const handleSelectEmployeeTasks = (empId: number) => {
-    setActiveTab('tracking');
-    setFilters({
-      ...defaultFilters,
-      agent_id: String(empId)
-    });
-  };
-
-  const handleAssignFromTemplate = (tpl: TaskTemplate) => {
-    setPreselectedTemplate(tpl);
-    setIsAssignModalOpen(true);
-  };
-
-  // WeasyPrint PDF Export Handler
-  const handleExportPdf = async () => {
+  // Export Handlers (Employees List)
+  const handleExportEmployeesPdf = async (list: Employee[], filterSummary: string) => {
     if (!window.electronAPI) return;
     try {
       setIsExportingPdf(true);
-
-      const now = new Date();
-      const dateFr = now.toLocaleDateString('fr-FR', {
-        day: '2-digit',
-        month: '2-digit',
-        year: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      });
-
-      const approachingCount = tasks.filter(t => t.alert_level === 'j-3').length;
-      const overdueCount = tasks.filter(t => t.alert_level === 'overdue').length;
-      const inProgressCount = tasks.filter(t => t.statut === 'En cours').length;
-      const completedCount = tasks.filter(t => t.statut === 'Terminée').length;
-      const completionRate = tasks.length > 0 ? Math.round((completedCount / tasks.length) * 100) : 0;
-
-      let filterDesc = 'Toutes les activités';
-      if (filters.service !== 'Tous') filterDesc = `Pôle ${filters.service}`;
-      if (filters.alerte !== 'Toutes') filterDesc += ` • Filtre alerte: ${filters.alerte}`;
-      if (filters.statut !== 'Tous') filterDesc += ` • Statut: ${filters.statut}`;
-
-      const res = await window.electronAPI.generatePdfReport({
-        report_title: 'Rapport Officiel de Suivi Opérationnel & Échéances CNAS',
-        generation_date: dateFr,
-        generated_by: 'Direction CNAS • SuiviDesk',
-        filter_summary: filterDesc,
-        stats: {
-          total: tasks.length,
-          approaching: approachingCount,
-          overdue: overdueCount,
-          in_progress: inProgressCount,
-          completion_rate: completionRate
-        },
-        tasks: tasks
-      });
-
+      const res = await window.electronAPI.exportEmployeesPdf(list, filterSummary);
       if (res.success) {
-        showToast(`Rapport PDF généré avec succès ! (${res.filePath})`);
+        showToast('Rapport PDF des employés généré avec succès.');
       } else if (res.error && !res.error.includes('annulé')) {
-        alert(`Erreur d'exportation PDF: ${res.error}`);
+        alert(res.error);
       }
-    } catch (err: any) {
-      alert(`Erreur: ${err.message || 'Impossible de générer le PDF'}`);
     } finally {
       setIsExportingPdf(false);
     }
   };
 
-  // Native French Excel CSV Export Handler
-  const handleExportCsv = async () => {
+  const handleExportEmployeesCsv = async (list: Employee[]) => {
     if (!window.electronAPI) return;
     try {
       setIsExportingCsv(true);
-      const res = await window.electronAPI.exportCsvReport(tasks);
+      const res = await window.electronAPI.exportEmployeesCsv(list);
       if (res.success) {
-        showToast('Export Excel CSV réussi (encodage UTF-8 BOM, séparateur ;)');
+        showToast('Fichier CSV des employés exporté avec succès.');
       } else if (res.error && !res.error.includes('annulé')) {
-        alert(`Erreur export CSV: ${res.error}`);
+        alert(res.error);
       }
-    } catch (err: any) {
-      alert(`Erreur: ${err.message || 'Impossible d’exporter le CSV'}`);
+    } finally {
+      setIsExportingCsv(false);
+    }
+  };
+
+  // Export Handlers (Employee Tasks)
+  const handleExportTasksPdf = async (emp: Employee, tasks: TaskItem[]) => {
+    if (!window.electronAPI) return;
+    try {
+      setIsExportingPdf(true);
+      const res = await window.electronAPI.exportEmployeeTasksPdf(emp, tasks);
+      if (res.success) {
+        showToast('Rapport PDF des tâches généré avec succès.');
+      } else if (res.error && !res.error.includes('annulé')) {
+        alert(res.error);
+      }
+    } finally {
+      setIsExportingPdf(false);
+    }
+  };
+
+  const handleExportTasksCsv = async (emp: Employee, tasks: TaskItem[]) => {
+    if (!window.electronAPI) return;
+    try {
+      setIsExportingCsv(true);
+      const res = await window.electronAPI.exportEmployeeTasksCsv(emp, tasks);
+      if (res.success) {
+        showToast('Fichier CSV des tâches exporté avec succès.');
+      } else if (res.error && !res.error.includes('annulé')) {
+        alert(res.error);
+      }
     } finally {
       setIsExportingCsv(false);
     }
   };
 
   return (
-    <div 
-      className="h-screen w-screen flex flex-col overflow-hidden text-slate-100"
-      style={{
-        background: 'var(--bg-gradient-dark)'
-      }}
+    <div
+      className="h-screen w-screen flex flex-col overflow-hidden text-slate-800"
+      style={{ background: 'var(--bg-app)' }}
     >
-      {/* Toast Alert Notification */}
+      {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed bottom-6 right-6 z-50 animate-bounce">
-          <div className="px-4 py-2.5 rounded-2xl bg-gradient-to-r from-[#0055A5] to-[#00A3E0] text-white text-xs font-bold shadow-2xl flex items-center space-x-2">
+        <div className="fixed bottom-5 right-5 z-50 animate-bounce">
+          <div className="px-4 py-2.5 rounded-2xl cnas-btn-primary text-xs font-bold shadow-xl flex items-center space-x-2">
+            <CheckCircle2 className="w-4 h-4" />
             <span>{toastMessage}</span>
           </div>
         </div>
       )}
 
-      {/* Top Navbar */}
+      {/* Top CNAS Header */}
       <Navbar
-        urgentTasks={allTasksUnfiltered}
-        onOpenAssignModal={() => {
-          setPreselectedTemplate(null);
-          setIsAssignModalOpen(true);
-        }}
-        onOpenNotifications={() => setIsNotifOpen(true)}
-        isNotifOpen={isNotifOpen}
-        onExportPdf={handleExportPdf}
-        onExportCsv={handleExportCsv}
-        isExportingPdf={isExportingPdf}
-        isExportingCsv={isExportingCsv}
+        selectedEmployee={selectedEmployee}
+        onNavigateHome={() => setSelectedEmployeeId(null)}
+        onOpenAbout={() => setIsAboutOpen(true)}
       />
 
-      {/* Main Body with Sidebar + Content */}
-      <div className="flex-1 flex min-h-0 overflow-hidden">
-        
-        {/* Left Sidebar */}
-        <Sidebar
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
-          tasks={allTasksUnfiltered}
-          onQuickFilterAlert={handleQuickFilterAlert}
-        />
+      {/* Main Scrollable Content */}
+      <main className="flex-1 min-h-0 overflow-y-auto p-5 sm:p-7">
+        {selectedEmployee ? (
+          <EmployeeDetailsView
+            employee={selectedEmployee}
+            tasks={employeeTasks}
+            onBack={() => setSelectedEmployeeId(null)}
+            onEditEmployee={(emp) => {
+              setEmployeeToEdit(emp);
+              setIsEmployeeModalOpen(true);
+            }}
+            onAddTask={() => {
+              setTaskToEdit(null);
+              setIsTaskModalOpen(true);
+            }}
+            onEditTask={(task) => {
+              setTaskToEdit(task);
+              setIsTaskModalOpen(true);
+            }}
+            onDeleteTask={(task) => setTaskToDelete(task)}
+            onExportTasksPdf={handleExportTasksPdf}
+            onExportTasksCsv={handleExportTasksCsv}
+            isExportingPdf={isExportingPdf}
+            isExportingCsv={isExportingCsv}
+          />
+        ) : (
+          <EmployeesListView
+            employees={employees}
+            onAddEmployee={() => {
+              setEmployeeToEdit(null);
+              setIsEmployeeModalOpen(true);
+            }}
+            onEditEmployee={(emp) => {
+              setEmployeeToEdit(emp);
+              setIsEmployeeModalOpen(true);
+            }}
+            onViewEmployeeDetails={(emp) => {
+              setSelectedEmployeeId(emp.id);
+            }}
+            onDeleteEmployee={(emp) => {
+              setEmployeeToDelete(emp);
+            }}
+            onExportPdf={handleExportEmployeesPdf}
+            onExportCsv={handleExportEmployeesCsv}
+            isExportingPdf={isExportingPdf}
+            isExportingCsv={isExportingCsv}
+          />
+        )}
+      </main>
 
-        {/* Dynamic Center Viewport with guaranteed scroll */}
-        <main className="flex-1 min-h-0 overflow-y-auto p-6 md:p-8">
-          {activeTab === 'tracking' && (
-            <TaskTrackingView
-              tasks={tasks}
-              filters={filters}
-              onChangeFilters={setFilters}
-              onResetFilters={() => setFilters(defaultFilters)}
-              employees={employees}
-              onUpdateStatus={handleUpdateStatus}
-              onEditTask={(task) => setSelectedTaskForEdit(task)}
-              onViewDetails={(task) => setSelectedTaskForDetail(task)}
-              onOpenAssignModal={() => {
-                setPreselectedTemplate(null);
-                setIsAssignModalOpen(true);
-              }}
-            />
-          )}
+      {/* About Modal with CNAS_logo.png */}
+      <AboutModal isOpen={isAboutOpen} onClose={() => setIsAboutOpen(false)} />
 
-          {activeTab === 'employees' && (
-            <EmployeeDirectoryView
-              employees={employees}
-              onSelectEmployeeTasks={(employeeId) => {
-                setFilters({ ...defaultFilters, agent_id: String(employeeId) });
-                setActiveTab('tracking');
-              }}
-              onRefreshEmployees={() => {
-                loadEmployees();
-                loadTasks();
-              }}
-              onOpenAddModal={() => {
-                setPreselectedTemplate(null);
-                setIsAssignModalOpen(true);
-              }}
-            />
-          )}
-
-          {activeTab === 'dashboard' && (
-            <DashboardView
-              stats={dashboardStats}
-              onFilterAlert={handleQuickFilterAlert}
-            />
-          )}
-
-          {activeTab === 'catalog' && (
-            <CatalogView
-              templates={templates}
-              onAssignFromTemplate={handleAssignFromTemplate}
-              onRefreshTemplates={() => {
-                loadTemplates();
-                showToast('Catalogue actualisé.');
-              }}
-            />
-          )}
-        </main>
-
-      </div>
-
-      {/* Sliding Notification Drawer */}
-      <NotificationDrawer
-        isOpen={isNotifOpen}
-        onClose={() => setIsNotifOpen(false)}
-        tasks={allTasksUnfiltered}
-        onSelectTask={(task) => {
-          setSelectedTaskForDetail(task);
-        }}
-      />
-
-      {/* Detail Modal */}
-      <TaskDetailModal
-        task={selectedTaskForDetail}
-        isOpen={Boolean(selectedTaskForDetail)}
-        onClose={() => setSelectedTaskForDetail(null)}
-        onUpdateStatus={handleUpdateStatus}
-        onDelete={handleDeleteTask}
-        onEdit={(task) => setSelectedTaskForEdit(task)}
-      />
-
-      {/* Assign Task Modal */}
-      <TaskAssignModal
-        isOpen={isAssignModalOpen}
+      {/* Add / Edit Employee Modal */}
+      <EmployeeModal
+        isOpen={isEmployeeModalOpen}
         onClose={() => {
-          setIsAssignModalOpen(false);
-          setPreselectedTemplate(null);
+          setIsEmployeeModalOpen(false);
+          setEmployeeToEdit(null);
         }}
-        employees={employees}
-        templates={templates}
-        preselectedTemplate={preselectedTemplate}
-        onTaskAssigned={() => {
-          loadTasks();
-          loadAllTasks();
-          loadEmployees();
-          loadDashboardStats();
-          showToast('Tâche CNAS affectée et planifiée.');
+        existingEmployees={employees}
+        employeeToEdit={employeeToEdit}
+        onSaved={async (msg) => {
+          await loadEmployees();
+          showToast(msg);
         }}
       />
 
-      {/* Edit Task Modal */}
-      <TaskEditModal
-        task={selectedTaskForEdit}
-        isOpen={Boolean(selectedTaskForEdit)}
-        onClose={() => setSelectedTaskForEdit(null)}
-        employees={employees}
-        onTaskUpdated={() => {
-          loadTasks();
-          loadAllTasks();
-          loadEmployees();
-          loadDashboardStats();
-          showToast('Fiche de tâche modifiée.');
-        }}
+      {/* Add / Edit Task Modal */}
+      {selectedEmployee && (
+        <TaskModal
+          isOpen={isTaskModalOpen}
+          onClose={() => {
+            setIsTaskModalOpen(false);
+            setTaskToEdit(null);
+          }}
+          employeeId={selectedEmployee.id}
+          employeeName={
+            [
+              selectedEmployee.civilite,
+              selectedEmployee.full_name || `Employé #${selectedEmployee.id}`
+            ]
+              .filter(Boolean)
+              .join(' ') || `Employé #${selectedEmployee.id}`
+          }
+          taskToEdit={taskToEdit}
+          onSaved={async (msg) => {
+            await loadTasksForEmployee(selectedEmployee.id);
+            await loadEmployees();
+            showToast(msg);
+          }}
+        />
+      )}
+
+      {/* Delete Employee Confirmation Modal */}
+      <ConfirmModal
+        isOpen={Boolean(employeeToDelete)}
+        title="Supprimer cet employé ?"
+        message={`Voulez-vous vraiment supprimer définitivement « ${
+          employeeToDelete?.full_name || `Employé #${employeeToDelete?.id}`
+        } » ainsi que ses tâches associées ? Cette action est irréversible.`}
+        confirmLabel="Oui, supprimer"
+        onConfirm={handleConfirmDeleteEmployee}
+        onCancel={() => setEmployeeToDelete(null)}
+        isLoading={isDeleting}
       />
 
+      {/* Delete Task Confirmation Modal */}
+      <ConfirmModal
+        isOpen={Boolean(taskToDelete)}
+        title="Supprimer cette tâche ?"
+        message={`Voulez-vous vraiment supprimer la tâche « ${
+          taskToDelete?.titre || `#${taskToDelete?.id}`
+        } » ?`}
+        confirmLabel="Oui, supprimer"
+        onConfirm={handleConfirmDeleteTask}
+        onCancel={() => setTaskToDelete(null)}
+        isLoading={isDeleting}
+      />
     </div>
   );
 };
+
 export default App;
