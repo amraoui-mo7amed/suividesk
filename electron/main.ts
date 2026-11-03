@@ -3,7 +3,7 @@ import path from 'path';
 import fs from 'fs';
 import * as mammoth from 'mammoth';
 import * as XLSX from 'xlsx';
-import { getDatabase, getUserFilesDirectory } from './db.js';
+import { getDatabase, getUserFilesDirectory, getTaskFilesDirectory } from './db.js';
 import {
   exportEmployeesPdf,
   exportEmployeesCsv,
@@ -23,6 +23,7 @@ function detectFileType(fileName: string): string {
   if (ext === '.pdf') return 'pdf';
   if (ext === '.docx' || ext === '.doc') return 'docx';
   if (ext === '.xlsx' || ext === '.xls' || ext === '.csv') return 'excel';
+  if (['.png', '.jpg', '.jpeg', '.webp', '.bmp', '.gif'].includes(ext)) return 'image';
   return ext ? ext.slice(1) : '';
 }
 
@@ -65,6 +66,45 @@ function saveEmployeeAttachment(fileData: { name: string; base64?: string; sourc
     fileName: fileData.name,
     filePath: destPath,
     fileType: detectFileType(fileData.name)
+  };
+}
+
+function saveTaskAttachment(fileData: { name: string; base64?: string; sourcePath?: string; size?: number }): {
+  fileName: string;
+  filePath: string;
+  fileType: string;
+  fileSize: number;
+} {
+  const filesDir = getTaskFilesDirectory();
+  const safeBaseName = path
+    .basename(fileData.name || 'document')
+    .replace(/[^a-zA-Z0-9._-]/g, '_');
+  const storedName = `${Date.now()}_${Math.random().toString(36).substring(2, 7)}_${safeBaseName}`;
+  const destPath = path.join(filesDir, storedName);
+
+  let fileSize = fileData.size || 0;
+
+  if (fileData.sourcePath && fs.existsSync(fileData.sourcePath)) {
+    fs.copyFileSync(fileData.sourcePath, destPath);
+    try {
+      fileSize = fs.statSync(destPath).size;
+    } catch {}
+  } else if (fileData.base64) {
+    const rawB64 = fileData.base64.includes(',')
+      ? fileData.base64.split(',')[1]
+      : fileData.base64;
+    const buf = Buffer.from(rawB64, 'base64');
+    fs.writeFileSync(destPath, buf);
+    fileSize = buf.length;
+  } else {
+    throw new Error('Fichier source introuvable.');
+  }
+
+  return {
+    fileName: fileData.name,
+    filePath: destPath,
+    fileType: detectFileType(fileData.name),
+    fileSize
   };
 }
 
@@ -312,6 +352,24 @@ function registerIpcHandlers() {
           fs.unlinkSync(current.file_path);
         } catch {}
       }
+
+      // Clean up all task files belonging to this employee
+      const taskDocs = db.prepare(
+        `SELECT d.file_path FROM task_documents d
+         JOIN task_assignments t ON d.task_id = t.id
+         WHERE t.agent_id = ?`
+      ).all(id) as any[];
+      for (const td of taskDocs) {
+        if (td?.file_path && fs.existsSync(td.file_path)) {
+          try {
+            fs.unlinkSync(td.file_path);
+          } catch {}
+        }
+      }
+
+      db.prepare(
+        `DELETE FROM task_documents WHERE task_id IN (SELECT id FROM task_assignments WHERE agent_id = ?)`
+      ).run(id);
       db.prepare('DELETE FROM task_assignments WHERE agent_id = ?').run(id);
       db.prepare('DELETE FROM employees WHERE id = ?').run(id);
       return { success: true };
@@ -336,7 +394,10 @@ function registerIpcHandlers() {
 
     return rows.map((r) => ({
       ...r,
-      duree_traitement_jours: computeTreatmentDays(r.date_debut, r.date_finale)
+      duree_traitement_jours: computeTreatmentDays(r.date_debut, r.date_finale),
+      documents: db
+        .prepare('SELECT * FROM task_documents WHERE task_id = ? ORDER BY id ASC')
+        .all(r.id)
     }));
   });
 
@@ -352,12 +413,30 @@ function registerIpcHandlers() {
 
     return rows.map((r) => ({
       ...r,
-      duree_traitement_jours: computeTreatmentDays(r.date_debut, r.date_finale)
+      duree_traitement_jours: computeTreatmentDays(r.date_debut, r.date_finale),
+      documents: db
+        .prepare('SELECT * FROM task_documents WHERE task_id = ? ORDER BY id ASC')
+        .all(r.id)
     }));
   });
 
   ipcMain.handle('tasks:create', async (_, data) => {
     try {
+      const agentId = data?.agent_id ? Number(data.agent_id) : null;
+      if (!agentId || isNaN(agentId)) {
+        return {
+          success: false,
+          error: 'Une tâche doit obligatoirement être assignée à un collaborateur existant.'
+        };
+      }
+      const agentExists = db.prepare('SELECT id FROM employees WHERE id = ?').get(agentId);
+      if (!agentExists) {
+        return {
+          success: false,
+          error: 'Le collaborateur sélectionné est introuvable. Veuillez d’abord ajouter un employé.'
+        };
+      }
+
       const res = db
         .prepare(
           `INSERT INTO task_assignments (
@@ -366,7 +445,7 @@ function registerIpcHandlers() {
            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
         )
         .run(
-          data?.agent_id ? Number(data.agent_id) : null,
+          agentId,
           (data?.titre || '').trim(),
           (data?.sujet || '').trim(),
           (data?.personne_cible || '').trim(),
@@ -382,7 +461,25 @@ function registerIpcHandlers() {
           (data?.note_finale || '').trim()
         );
 
-      return { success: true, id: Number(res.lastInsertRowid) };
+      const taskId = Number(res.lastInsertRowid);
+
+      // Save attachments if provided
+      if (Array.isArray(data?.attachments) && data.attachments.length > 0) {
+        const insertDoc = db.prepare(
+          `INSERT INTO task_documents (task_id, file_name, file_path, file_type, file_size)
+           VALUES (?, ?, ?, ?, ?)`
+        );
+        for (const att of data.attachments) {
+          try {
+            const saved = saveTaskAttachment(att);
+            insertDoc.run(taskId, saved.fileName, saved.filePath, saved.fileType, saved.fileSize);
+          } catch (fileErr) {
+            console.error('Erreur enregistrement pièce jointe de tâche:', fileErr);
+          }
+        }
+      }
+
+      return { success: true, id: taskId };
     } catch (err: any) {
       return { success: false, error: err.message || 'Erreur lors de l’ajout de la tâche.' };
     }
@@ -426,6 +523,37 @@ function registerIpcHandlers() {
         id
       );
 
+      // Handle removed documents
+      if (Array.isArray(data?.removedDocIds) && data.removedDocIds.length > 0) {
+        for (const docId of data.removedDocIds) {
+          const docRow = db
+            .prepare('SELECT file_path FROM task_documents WHERE id = ? AND task_id = ?')
+            .get(docId, id) as any;
+          if (docRow?.file_path && fs.existsSync(docRow.file_path)) {
+            try {
+              fs.unlinkSync(docRow.file_path);
+            } catch {}
+          }
+          db.prepare('DELETE FROM task_documents WHERE id = ? AND task_id = ?').run(docId, id);
+        }
+      }
+
+      // Handle newly attached documents
+      if (Array.isArray(data?.attachments) && data.attachments.length > 0) {
+        const insertDoc = db.prepare(
+          `INSERT INTO task_documents (task_id, file_name, file_path, file_type, file_size)
+           VALUES (?, ?, ?, ?, ?)`
+        );
+        for (const att of data.attachments) {
+          try {
+            const saved = saveTaskAttachment(att);
+            insertDoc.run(id, saved.fileName, saved.filePath, saved.fileType, saved.fileSize);
+          } catch (fileErr) {
+            console.error('Erreur enregistrement pièce jointe de tâche:', fileErr);
+          }
+        }
+      }
+
       return { success: true };
     } catch (err: any) {
       return { success: false, error: err.message || 'Erreur lors de la modification de la tâche.' };
@@ -434,6 +562,15 @@ function registerIpcHandlers() {
 
   ipcMain.handle('tasks:delete', async (_, id: number) => {
     try {
+      const docs = db.prepare('SELECT file_path FROM task_documents WHERE task_id = ?').all(id) as any[];
+      for (const d of docs) {
+        if (d?.file_path && fs.existsSync(d.file_path)) {
+          try {
+            fs.unlinkSync(d.file_path);
+          } catch {}
+        }
+      }
+      db.prepare('DELETE FROM task_documents WHERE task_id = ?').run(id);
       db.prepare('DELETE FROM task_assignments WHERE id = ?').run(id);
       return { success: true };
     } catch (err: any) {
@@ -442,16 +579,16 @@ function registerIpcHandlers() {
   });
 
   // -------------------------------------------------------------
-  // 3. Files & Document Preview Handlers (PDF / DOCX / Excel)
+  // 3. Files & Document Preview Handlers (PDF / DOCX / Excel / Images)
   // -------------------------------------------------------------
   ipcMain.handle('files:pickDocument', async () => {
     const result = await dialog.showOpenDialog({
-      title: 'Sélectionner un document (PDF, Word DOCX, Excel)',
+      title: 'Sélectionner un document (PDF, Word DOCX, Excel, Images)',
       properties: ['openFile'],
       filters: [
         {
-          name: 'Documents (PDF, Word, Excel)',
-          extensions: ['pdf', 'docx', 'doc', 'xlsx', 'xls', 'csv']
+          name: 'Documents et Images',
+          extensions: ['pdf', 'docx', 'doc', 'xlsx', 'xls', 'csv', 'png', 'jpg', 'jpeg', 'webp']
         },
         { name: 'Tous les fichiers', extensions: ['*'] }
       ]
@@ -467,6 +604,159 @@ function registerIpcHandlers() {
       name: path.basename(chosenPath),
       sourcePath: chosenPath
     };
+  });
+
+  ipcMain.handle('files:pickMultipleDocuments', async () => {
+    const result = await dialog.showOpenDialog({
+      title: 'Sélectionner des documents (PDF, CSV, Images, Excel, Word)',
+      properties: ['openFile', 'multiSelections'],
+      filters: [
+        {
+          name: 'Tous documents et images pris en charge',
+          extensions: ['pdf', 'csv', 'xlsx', 'xls', 'png', 'jpg', 'jpeg', 'webp', 'docx', 'doc']
+        },
+        { name: 'Fichiers PDF (*.pdf)', extensions: ['pdf'] },
+        { name: 'Fichiers CSV & Tableurs (*.csv, *.xlsx, *.xls)', extensions: ['csv', 'xlsx', 'xls'] },
+        { name: 'Images (*.png, *.jpg, *.jpeg, *.webp)', extensions: ['png', 'jpg', 'jpeg', 'webp'] },
+        { name: 'Tous les fichiers', extensions: ['*'] }
+      ]
+    });
+
+    if (result.canceled || result.filePaths.length === 0) {
+      return { canceled: true, files: [] };
+    }
+
+    const files = result.filePaths.map((p) => {
+      let size = 0;
+      try {
+        size = fs.statSync(p).size;
+      } catch {}
+      return {
+        name: path.basename(p),
+        sourcePath: p,
+        size
+      };
+    });
+
+    return {
+      canceled: false,
+      files
+    };
+  });
+
+  ipcMain.handle('files:getTaskDocumentPreview', async (_, docId: number) => {
+    try {
+      const doc = db.prepare('SELECT * FROM task_documents WHERE id = ?').get(docId) as any;
+      if (!doc || !doc.file_path || !fs.existsSync(doc.file_path)) {
+        return { success: false, error: 'Fichier introuvable sur le disque.' };
+      }
+
+      const ext = path.extname(doc.file_name || doc.file_path).toLowerCase();
+      const buffer = fs.readFileSync(doc.file_path);
+
+      if (ext === '.pdf') {
+        return {
+          success: true,
+          kind: 'pdf',
+          fileName: doc.file_name,
+          filePath: doc.file_path,
+          createdAt: doc.created_at,
+          fileSize: doc.file_size,
+          base64: buffer.toString('base64')
+        };
+      }
+
+      if (['.png', '.jpg', '.jpeg', '.webp', '.bmp', '.gif'].includes(ext)) {
+        const mimeMap: Record<string, string> = {
+          '.png': 'image/png',
+          '.jpg': 'image/jpeg',
+          '.jpeg': 'image/jpeg',
+          '.webp': 'image/webp',
+          '.bmp': 'image/bmp',
+          '.gif': 'image/gif'
+        };
+        const mime = mimeMap[ext] || 'image/png';
+        return {
+          success: true,
+          kind: 'image',
+          fileName: doc.file_name,
+          filePath: doc.file_path,
+          createdAt: doc.created_at,
+          fileSize: doc.file_size,
+          base64: `data:${mime};base64,${buffer.toString('base64')}`
+        };
+      }
+
+      if (ext === '.docx') {
+        const result = await mammoth.convertToHtml({ buffer });
+        return {
+          success: true,
+          kind: 'docx',
+          fileName: doc.file_name,
+          filePath: doc.file_path,
+          createdAt: doc.created_at,
+          fileSize: doc.file_size,
+          html: result.value || '<p><em>Document vide</em></p>'
+        };
+      }
+
+      if (ext === '.xlsx' || ext === '.xls' || ext === '.csv') {
+        const workbook = XLSX.read(buffer, { type: 'buffer' });
+        const sheets = workbook.SheetNames.slice(0, 8).map((sheetName) => {
+          const sheet = workbook.Sheets[sheetName];
+          const rawRows = XLSX.utils.sheet_to_json<any[]>(sheet, {
+            header: 1,
+            defval: ''
+          });
+          const trimmedRows = rawRows.slice(0, 200).map((row) =>
+            (Array.isArray(row) ? row : []).map((cell) =>
+              cell !== null && cell !== undefined ? String(cell) : ''
+            )
+          );
+          return {
+            name: sheetName,
+            rows: trimmedRows
+          };
+        });
+
+        return {
+          success: true,
+          kind: 'excel',
+          fileName: doc.file_name,
+          filePath: doc.file_path,
+          createdAt: doc.created_at,
+          fileSize: doc.file_size,
+          sheets
+        };
+      }
+
+      return {
+        success: true,
+        kind: 'unsupported',
+        fileName: doc.file_name,
+        filePath: doc.file_path,
+        createdAt: doc.created_at,
+        fileSize: doc.file_size
+      };
+    } catch (err: any) {
+      return {
+        success: false,
+        error: err.message || 'Impossible de prévisualiser ce document.'
+      };
+    }
+  });
+
+  ipcMain.handle('files:openTaskDocumentExternal', async (_, docId: number) => {
+    try {
+      const doc = db.prepare('SELECT file_path FROM task_documents WHERE id = ?').get(docId) as any;
+      if (!doc?.file_path || !fs.existsSync(doc.file_path)) {
+        return { success: false, error: 'Fichier introuvable sur le disque.' };
+      }
+      await shell.openPath(doc.file_path);
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message || 'Impossible d’ouvrir le fichier.' };
+    }
   });
 
   ipcMain.handle('files:getEmployeePreview', async (_, employeeId: number) => {

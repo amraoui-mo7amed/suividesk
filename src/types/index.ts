@@ -31,6 +31,23 @@ export interface EmployeeInput {
   remove_file?: boolean;
 }
 
+export interface TaskDocument {
+  id: number;
+  task_id: number;
+  file_name: string;
+  file_path: string;
+  file_type: string;
+  file_size?: number;
+  created_at: string;
+}
+
+export interface TaskAttachmentInput {
+  name: string;
+  base64?: string;
+  sourcePath?: string;
+  size?: number;
+}
+
 export interface TaskItem {
   id: number;
   agent_id: number | null;
@@ -53,6 +70,7 @@ export interface TaskItem {
   duree_traitement_jours?: number | null;
   agent_full_name?: string;
   agent_civilite?: string;
+  documents?: TaskDocument[];
 }
 
 export type EmployeeSortOption =
@@ -72,9 +90,11 @@ export interface EmployeeFilters {
 
 export interface FilePreviewResult {
   success: boolean;
-  kind?: 'pdf' | 'docx' | 'excel' | 'unsupported' | 'empty';
+  kind?: 'pdf' | 'docx' | 'excel' | 'image' | 'unsupported' | 'empty';
   fileName?: string;
   filePath?: string;
+  createdAt?: string;
+  fileSize?: number;
   base64?: string;
   html?: string;
   sheets?: Array<{
@@ -203,14 +223,17 @@ declare global {
       // Tasks
       getTasksByEmployee: (employeeId: number) => Promise<TaskItem[]>;
       getAllTasks: () => Promise<TaskItem[]>;
-      createTask: (data: Partial<TaskItem>) => Promise<{ success: boolean; id?: number; error?: string }>;
-      updateTask: (id: number, data: Partial<TaskItem>) => Promise<{ success: boolean; error?: string }>;
+      createTask: (data: Partial<TaskItem> & { attachments?: TaskAttachmentInput[] }) => Promise<{ success: boolean; id?: number; error?: string }>;
+      updateTask: (id: number, data: Partial<TaskItem> & { attachments?: TaskAttachmentInput[]; removedDocIds?: number[] }) => Promise<{ success: boolean; error?: string }>;
       deleteTask: (id: number) => Promise<{ success: boolean; error?: string }>;
 
       // Files & Preview
       pickDocumentFile: () => Promise<{ canceled: boolean; name?: string; sourcePath?: string }>;
+      pickMultipleDocuments: () => Promise<{ canceled: boolean; files: Array<{ name: string; sourcePath: string; size: number }> }>;
       getEmployeeFilePreview: (employeeId: number) => Promise<FilePreviewResult>;
       openEmployeeFileExternal: (employeeId: number) => Promise<{ success: boolean; error?: string }>;
+      getTaskDocumentPreview: (docId: number) => Promise<FilePreviewResult>;
+      openTaskDocumentExternal: (docId: number) => Promise<{ success: boolean; error?: string }>;
 
       // Exports (Employees or Tasks -> PDF / CSV)
       exportEmployeesPdf: (employees: Employee[], filterSummary?: string) => Promise<{ success: boolean; filePath?: string; error?: string }>;

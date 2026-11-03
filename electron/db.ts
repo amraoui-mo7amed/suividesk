@@ -44,6 +44,15 @@ export function getUserFilesDirectory(): string {
   return filesDir;
 }
 
+export function getTaskFilesDirectory(): string {
+  const basePath = app ? app.getPath('userData') : path.join(process.cwd(), '.data');
+  const filesDir = path.join(basePath, 'task_files');
+  if (!fs.existsSync(filesDir)) {
+    fs.mkdirSync(filesDir, { recursive: true });
+  }
+  return filesDir;
+}
+
 export function getDatabase(): DbInstance {
   if (dbInstance) return dbInstance;
 
@@ -212,5 +221,16 @@ function initAndMigrateSchema(db: DbInstance) {
   db.exec(`
     CREATE INDEX IF NOT EXISTS idx_tasks_agent ON task_assignments(agent_id);
     CREATE INDEX IF NOT EXISTS idx_tasks_etat ON task_assignments(etat_courrier);
+
+    CREATE TABLE IF NOT EXISTS task_documents (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      task_id INTEGER REFERENCES task_assignments(id) ON DELETE CASCADE,
+      file_name TEXT NOT NULL,
+      file_path TEXT NOT NULL,
+      file_type TEXT NOT NULL,
+      file_size INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE INDEX IF NOT EXISTS idx_task_docs_task ON task_documents(task_id);
   `);
 }

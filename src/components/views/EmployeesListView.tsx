@@ -283,18 +283,6 @@ export const EmployeesListView: React.FC<EmployeesListViewProps> = ({
                 />
 
                 <CustomSelect
-                  label="Document Joint"
-                  options={FILTER_FILE_OPTIONS}
-                  value={filters.hasFile}
-                  onChange={(val) =>
-                    setFilters((prev) => ({
-                      ...prev,
-                      hasFile: val as EmployeeFilters['hasFile']
-                    }))
-                  }
-                />
-
-                <CustomSelect
                   label="État des Tâches"
                   options={FILTER_TASK_STATE_OPTIONS}
                   value={filters.taskState}
@@ -433,7 +421,6 @@ export const EmployeesListView: React.FC<EmployeesListViewProps> = ({
             const traiteCount = emp.traite_count || 0;
             const enCoursCount = emp.en_cours_count || 0;
             const nonTraiteCount = emp.non_traite_count || 0;
-            const hasFile = Boolean(emp.file_name && emp.file_name.trim() !== '');
 
             return (
               <div
@@ -470,22 +457,17 @@ export const EmployeesListView: React.FC<EmployeesListViewProps> = ({
                     </div>
                   </div>
 
-                  {/* Attached File Badge */}
+                  {/* Employee Info Badge */}
                   <div className="mt-3.5">
-                    {hasFile ? (
-                      <div
-                        className="px-2.5 py-1.5 rounded-xl border bg-[#EAF4FC] border-[#9CC0E2] text-[#003A6B] text-[11px] flex items-center space-x-2"
-                        title={emp.file_name}
-                      >
+                    <div className="px-2.5 py-1.5 rounded-xl border bg-[#F4F9FF] border-[#C6DDF2] text-[#003A6B] text-[11px] flex items-center justify-between">
+                      <div className="flex items-center space-x-1.5 font-bold">
                         <FileText className="w-3.5 h-3.5 text-[#005A9E] flex-shrink-0" />
-                        <span className="truncate font-bold">{emp.file_name}</span>
+                        <span>Fiche Collaborateur</span>
                       </div>
-                    ) : (
-                      <div className="px-2.5 py-1.5 rounded-xl border border-dashed border-[#A8C7E5] bg-slate-50 text-slate-600 text-[11px] flex items-center space-x-2">
-                        <FileText className="w-3.5 h-3.5 flex-shrink-0 text-slate-500" />
-                        <span className="font-medium">Aucun document joint</span>
-                      </div>
-                    )}
+                      <span className="text-[10px] font-extrabold text-[#005A9E] bg-[#DCEBFA] px-2 py-0.5 rounded-md">
+                        ID #{emp.id}
+                      </span>
+                    </div>
                   </div>
 
                   {/* Tasks Summary Pills (High Contrast WCAG AAA) */}

@@ -17,8 +17,11 @@ export const electronAPI = {
 
   // Files & Preview
   pickDocumentFile: () => ipcRenderer.invoke('files:pickDocument'),
+  pickMultipleDocuments: () => ipcRenderer.invoke('files:pickMultipleDocuments'),
   getEmployeeFilePreview: (employeeId: number) => ipcRenderer.invoke('files:getEmployeePreview', employeeId),
   openEmployeeFileExternal: (employeeId: number) => ipcRenderer.invoke('files:openEmployeeExternal', employeeId),
+  getTaskDocumentPreview: (docId: number) => ipcRenderer.invoke('files:getTaskDocumentPreview', docId),
+  openTaskDocumentExternal: (docId: number) => ipcRenderer.invoke('files:openTaskDocumentExternal', docId),
 
   // Exports
   exportEmployeesPdf: (employees: any[], filterSummary?: string) =>

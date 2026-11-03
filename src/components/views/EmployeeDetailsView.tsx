@@ -92,7 +92,9 @@ export const EmployeeDetailsView: React.FC<EmployeeDetailsViewProps> = ({
   const traiteCount = tasks.filter((t) => t.etat_courrier === 'traite').length;
   const enCoursCount = tasks.filter((t) => t.etat_courrier === 'en_cours').length;
   const nonTraiteCount = tasks.filter((t) => t.etat_courrier === 'non_traite').length;
-  const hasFile = Boolean(employee.file_name && employee.file_name.trim() !== '');
+  const totalTaskDocsCount = useMemo(() => {
+    return tasks.reduce((sum, t) => sum + (t.documents ? t.documents.length : 0), 0);
+  }, [tasks]);
 
   const filteredTasks = useMemo(() => {
     const q = taskSearch.trim().toLowerCase();
@@ -267,18 +269,16 @@ export const EmployeeDetailsView: React.FC<EmployeeDetailsViewProps> = ({
           }`}
         >
           <FileText className="w-4 h-4" />
-          <span>Aperçu du Document</span>
-          {hasFile && (
-            <span
-              className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
-                activeTab === 'preview'
-                  ? 'bg-white text-[#005A9E]'
-                  : 'bg-[#DCFCE7] text-[#14532D] border border-[#86EFAC]'
-              }`}
-            >
-              Joint
-            </span>
-          )}
+          <span>Aperçu des Documents</span>
+          <span
+            className={`px-2 py-0.5 rounded-full text-[10px] font-black ${
+              activeTab === 'preview'
+                ? 'bg-white text-[#005A9E]'
+                : 'bg-[#DCEBFA] text-[#003A6B]'
+            }`}
+          >
+            {totalTaskDocsCount}
+          </span>
         </button>
       </div>
 
@@ -419,23 +419,23 @@ export const EmployeeDetailsView: React.FC<EmployeeDetailsViewProps> = ({
                 </div>
                 <div className="min-w-0">
                   <div className="text-[10px] font-extrabold uppercase text-[#1E3A5F]">
-                    Document Associé
+                    Documents des Tâches
                   </div>
                   <div className="text-xs font-black text-[#003A6B] truncate">
-                    {employee.file_name || 'Aucun document joint'}
+                    {totalTaskDocsCount > 0
+                      ? `${totalTaskDocsCount} document(s) rattaché(s) aux tâches`
+                      : 'Aucun document joint aux tâches'}
                   </div>
                 </div>
               </div>
 
               <button
                 type="button"
-                onClick={() =>
-                  hasFile ? setActiveTab('preview') : onEditEmployee(employee)
-                }
+                onClick={() => setActiveTab('preview')}
                 className="inline-flex items-center space-x-1.5 px-3 py-1.5 rounded-xl text-xs font-bold cnas-btn-secondary flex-shrink-0 cursor-pointer"
               >
                 <Eye className="w-3.5 h-3.5" />
-                <span>{hasFile ? 'Voir l’aperçu' : 'Joindre un fichier'}</span>
+                <span>Voir les documents</span>
               </button>
             </div>
           </div>
@@ -484,7 +484,9 @@ export const EmployeeDetailsView: React.FC<EmployeeDetailsViewProps> = ({
       {activeTab === 'preview' && (
         <DocumentPreviewWidget
           employee={employee}
-          onEditEmployeeFile={() => onEditEmployee(employee)}
+          tasks={tasks}
+          onAddTask={onAddTask}
+          onEditTask={onEditTask}
         />
       )}
     </div>

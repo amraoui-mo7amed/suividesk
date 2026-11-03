@@ -10,7 +10,8 @@ import {
   CheckCircle2,
   AlertCircle,
   Loader,
-  StickyNote
+  StickyNote,
+  Paperclip
 } from 'lucide-react';
 import {
   TaskItem,
@@ -133,6 +134,15 @@ export const TaskCard: React.FC<TaskCardProps> = ({
             <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-slate-100 text-slate-800 border border-slate-300">
               <MapPin className="w-3.5 h-3.5 text-[#005A9E]" />
               <span>{task.wilaya}</span>
+            </span>
+          )}
+
+          {task.documents && task.documents.length > 0 && (
+            <span className="inline-flex items-center space-x-1 px-2.5 py-1 rounded-lg text-[11px] font-bold bg-[#EBF4FC] text-[#005A9E] border border-[#93C0E8]">
+              <Paperclip className="w-3 h-3 text-[#005A9E]" />
+              <span>
+                {task.documents.length} doc{task.documents.length > 1 ? 's' : ''}
+              </span>
             </span>
           )}
         </div>

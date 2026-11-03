@@ -6,14 +6,13 @@ import { AboutModal } from './components/AboutModal';
 import { ConfirmModal } from './components/ConfirmModal';
 import { EmployeeModal } from './components/EmployeeModal';
 import { TaskModal } from './components/TaskModal';
-import { EmployeesListView } from './components/views/EmployeesListView';
 import { EmployeeDetailsView } from './components/views/EmployeeDetailsView';
 import { TaskTrackingView } from './components/views/TaskTrackingView';
 import { DashboardView } from './components/views/DashboardView';
 
 export const App: React.FC = () => {
-  // Navigation State: 'home' | 'suivi' | 'dashboard'
-  const [currentTab, setCurrentTab] = useState<MainNavTab>('home');
+  // Navigation State: 'dashboard' (Home) | 'suivi' | 'home' (Collaborateurs)
+  const [currentTab, setCurrentTab] = useState<MainNavTab>('dashboard');
 
   // Core Data State
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -229,6 +228,7 @@ export const App: React.FC = () => {
         selectedEmployee={selectedEmployee}
         onNavigateHome={() => {
           setSelectedEmployeeId(null);
+          setCurrentTab('dashboard');
         }}
         onOpenAbout={() => setIsAboutOpen(true)}
       />
@@ -261,10 +261,22 @@ export const App: React.FC = () => {
             isExportingPdf={isExportingPdf}
             isExportingCsv={isExportingCsv}
           />
-        ) : currentTab === 'home' ? (
-          /* TAB 1: HOME (Liste des Employés) */
-          <EmployeesListView
+        ) : currentTab === 'dashboard' ? (
+          /* TAB 1: TABLEAU DE BORD (Home Page) */
+          <DashboardView
             employees={employees}
+            tasks={allTasks}
+            onSelectEmployee={(empId) => {
+              setSelectedEmployeeId(empId);
+            }}
+          />
+        ) : (
+          /* TAB 2: TABLEAU DE SUIVI (Shows ONLY Employees - Access details to see/add tasks) */
+          <TaskTrackingView
+            employees={employees}
+            onSelectEmployee={(empId) => {
+              setSelectedEmployeeId(empId);
+            }}
             onAddEmployee={() => {
               setEmployeeToEdit(null);
               setIsEmployeeModalOpen(true);
@@ -273,45 +285,13 @@ export const App: React.FC = () => {
               setEmployeeToEdit(emp);
               setIsEmployeeModalOpen(true);
             }}
-            onViewEmployeeDetails={(emp) => {
-              setSelectedEmployeeId(emp.id);
-            }}
             onDeleteEmployee={(emp) => {
               setEmployeeToDelete(emp);
             }}
-            onExportPdf={handleExportEmployeesPdf}
-            onExportCsv={handleExportEmployeesCsv}
+            onExportEmployeesPdf={handleExportEmployeesPdf}
+            onExportEmployeesCsv={handleExportEmployeesCsv}
             isExportingPdf={isExportingPdf}
             isExportingCsv={isExportingCsv}
-          />
-        ) : currentTab === 'suivi' ? (
-          /* TAB 2: TABLEAU DE SUIVI (Global Tasks Tracking) */
-          <TaskTrackingView
-            tasks={allTasks}
-            employees={employees}
-            onAddTask={() => {
-              setTaskToEdit(null);
-              setTaskTargetEmployeeId(null);
-              setIsTaskModalOpen(true);
-            }}
-            onEditTask={(task) => {
-              setTaskToEdit(task);
-              setTaskTargetEmployeeId(task.agent_id);
-              setIsTaskModalOpen(true);
-            }}
-            onDeleteTask={(task) => setTaskToDelete(task)}
-            onSelectEmployee={(empId) => {
-              setSelectedEmployeeId(empId);
-            }}
-          />
-        ) : (
-          /* TAB 3: TABLEAU DE BORD (Analytics & Metrics) */
-          <DashboardView
-            employees={employees}
-            tasks={allTasks}
-            onSelectEmployee={(empId) => {
-              setSelectedEmployeeId(empId);
-            }}
           />
         )}
       </main>
@@ -338,8 +318,8 @@ export const App: React.FC = () => {
         }}
       />
 
-      {/* Add / Edit Task Modal */}
-      {isTaskModalOpen && (
+      {/* Add / Edit Task Modal (Only accessible if at least one employee exists) */}
+      {isTaskModalOpen && employees.length > 0 && (
         <TaskModal
           isOpen={isTaskModalOpen}
           onClose={() => {
@@ -358,6 +338,7 @@ export const App: React.FC = () => {
                   .join(' ') || `Employé #${activeTaskEmployee.id}`
               : 'Collaborateur'
           }
+          employees={employees}
           taskToEdit={taskToEdit}
           onSaved={async (msg) => {
             if (selectedEmployeeId !== null) {
