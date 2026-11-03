@@ -31,7 +31,11 @@ export const electronAPI = {
     ipcRenderer.invoke('export:employeeTasksCsv', employee, tasks),
 
   // App Utilities
-  openExternal: (url: string) => ipcRenderer.invoke('app:openExternal', url)
+  openExternal: (url: string) => ipcRenderer.invoke('app:openExternal', url),
+
+  // Database Backup / Restore
+  backupDatabase: () => ipcRenderer.invoke('db:backup'),
+  restoreDatabase: () => ipcRenderer.invoke('db:restore')
 };
 
 contextBridge.exposeInMainWorld('electronAPI', electronAPI);

@@ -575,6 +575,63 @@ function registerIpcHandlers() {
   ipcMain.handle('app:openExternal', async (_, url: string) => {
     shell.openExternal(url);
   });
+
+  // -------------------------------------------------------------
+  // 5. Database Backup & Restore Handlers
+  // -------------------------------------------------------------
+  ipcMain.handle('db:backup', async () => {
+    try {
+      const userDataPath = app ? app.getPath('userData') : path.join(process.cwd(), '.data');
+      const dbPath = path.join(userDataPath, 'suividesk.sqlite');
+      if (!fs.existsSync(dbPath)) {
+        return { success: false, error: 'Base de données introuvable.' };
+      }
+
+      const defaultName = `CNAS_SuiviDesk_Backup_${new Date().toISOString().slice(0, 10)}.sqlite`;
+      const { canceled, filePath } = await dialog.showSaveDialog({
+        title: 'Sauvegarder la base de données',
+        defaultPath: path.join(app ? app.getPath('downloads') : os.homedir(), defaultName),
+        filters: [{ name: 'Base SQLite', extensions: ['sqlite', 'db'] }]
+      });
+
+      if (canceled || !filePath) {
+        return { success: false, error: 'Sauvegarde annulée.' };
+      }
+
+      fs.copyFileSync(dbPath, filePath);
+      return { success: true, filePath };
+    } catch (err: any) {
+      return { success: false, error: err.message || 'Erreur lors de la sauvegarde.' };
+    }
+  });
+
+  ipcMain.handle('db:restore', async () => {
+    try {
+      const { canceled, filePaths } = await dialog.showOpenDialog({
+        title: 'Restaurer une sauvegarde de la base de données',
+        filters: [{ name: 'Base SQLite', extensions: ['sqlite', 'db'] }],
+        properties: ['openFile']
+      });
+
+      if (canceled || filePaths.length === 0) {
+        return { success: false, error: 'Restauration annulée.' };
+      }
+
+      const sourceBackup = filePaths[0];
+      const userDataPath = app ? app.getPath('userData') : path.join(process.cwd(), '.data');
+      const dbPath = path.join(userDataPath, 'suividesk.sqlite');
+
+      // Backup current before overwrite
+      if (fs.existsSync(dbPath)) {
+        fs.copyFileSync(dbPath, path.join(userDataPath, `suividesk_pre_restore_${Date.now()}.sqlite`));
+      }
+
+      fs.copyFileSync(sourceBackup, dbPath);
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message || 'Erreur lors de la restauration.' };
+    }
+  });
 }
 
 if (app) {

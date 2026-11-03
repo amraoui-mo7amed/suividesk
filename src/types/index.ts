@@ -219,6 +219,8 @@ declare global {
       exportEmployeeTasksCsv: (employee: Employee, tasks: TaskItem[]) => Promise<{ success: boolean; filePath?: string; error?: string }>;
 
       openExternal: (url: string) => Promise<void>;
+      backupDatabase: () => Promise<{ success: boolean; filePath?: string; error?: string }>;
+      restoreDatabase: () => Promise<{ success: boolean; error?: string }>;
     };
   }
 }

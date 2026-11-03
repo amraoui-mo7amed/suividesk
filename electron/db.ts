@@ -54,6 +54,20 @@ export function getDatabase(): DbInstance {
       fs.mkdirSync(userDataPath, { recursive: true });
     }
     dbPath = path.join(userDataPath, 'suividesk.sqlite');
+    
+    // Auto-backup database on launch before any migration
+    if (fs.existsSync(dbPath)) {
+      try {
+        const backupDir = path.join(userDataPath, 'backups');
+        if (!fs.existsSync(backupDir)) {
+          fs.mkdirSync(backupDir, { recursive: true });
+        }
+        const backupFile = path.join(backupDir, `suividesk_backup_launch.sqlite`);
+        fs.copyFileSync(dbPath, backupFile);
+      } catch (backupErr) {
+        console.warn('Backup warning:', backupErr);
+      }
+    }
   } catch {
     dbPath = path.join(process.cwd(), 'suividesk.sqlite');
   }

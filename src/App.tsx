@@ -1,17 +1,23 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { CheckCircle2 } from 'lucide-react';
 import { Employee, TaskItem } from './types';
-import { Navbar } from './components/Navbar';
+import { Navbar, MainNavTab } from './components/Navbar';
 import { AboutModal } from './components/AboutModal';
 import { ConfirmModal } from './components/ConfirmModal';
 import { EmployeeModal } from './components/EmployeeModal';
 import { TaskModal } from './components/TaskModal';
 import { EmployeesListView } from './components/views/EmployeesListView';
 import { EmployeeDetailsView } from './components/views/EmployeeDetailsView';
+import { TaskTrackingView } from './components/views/TaskTrackingView';
+import { DashboardView } from './components/views/DashboardView';
 
 export const App: React.FC = () => {
+  // Navigation State: 'home' | 'suivi' | 'dashboard'
+  const [currentTab, setCurrentTab] = useState<MainNavTab>('home');
+
   // Core Data State
   const [employees, setEmployees] = useState<Employee[]>([]);
+  const [allTasks, setAllTasks] = useState<TaskItem[]>([]);
   const [selectedEmployeeId, setSelectedEmployeeId] = useState<number | null>(null);
   const [employeeTasks, setEmployeeTasks] = useState<TaskItem[]>([]);
 
@@ -24,6 +30,7 @@ export const App: React.FC = () => {
   const [isTaskModalOpen, setIsTaskModalOpen] = useState(false);
   const [taskToEdit, setTaskToEdit] = useState<TaskItem | null>(null);
   const [taskToDelete, setTaskToDelete] = useState<TaskItem | null>(null);
+  const [taskTargetEmployeeId, setTaskTargetEmployeeId] = useState<number | null>(null);
 
   // Loading & Export Feedback
   const [isDeleting, setIsDeleting] = useState(false);
@@ -48,6 +55,16 @@ export const App: React.FC = () => {
     }
   }, []);
 
+  const loadAllTasks = useCallback(async () => {
+    if (!window.electronAPI) return;
+    try {
+      const list = await window.electronAPI.getAllTasks();
+      setAllTasks(list || []);
+    } catch (err) {
+      console.error('Erreur chargement ensemble des tâches:', err);
+    }
+  }, []);
+
   const loadTasksForEmployee = useCallback(async (empId: number) => {
     if (!window.electronAPI) return;
     try {
@@ -60,7 +77,8 @@ export const App: React.FC = () => {
 
   useEffect(() => {
     loadEmployees();
-  }, [loadEmployees]);
+    loadAllTasks();
+  }, [loadEmployees, loadAllTasks]);
 
   useEffect(() => {
     if (selectedEmployeeId !== null) {
@@ -86,6 +104,7 @@ export const App: React.FC = () => {
           setSelectedEmployeeId(null);
         }
         await loadEmployees();
+        await loadAllTasks();
         showToast('Employé supprimé avec succès.');
       } else if (res.error) {
         alert(res.error);
@@ -107,6 +126,7 @@ export const App: React.FC = () => {
           await loadTasksForEmployee(selectedEmployeeId);
         }
         await loadEmployees();
+        await loadAllTasks();
         showToast('Tâche supprimée avec succès.');
       } else if (res.error) {
         alert(res.error);
@@ -179,6 +199,9 @@ export const App: React.FC = () => {
     }
   };
 
+  // Active target for creating a task
+  const activeTaskEmployee = selectedEmployee || (taskTargetEmployeeId !== null ? employees.find(e => e.id === taskTargetEmployeeId) : null) || employees[0] || null;
+
   return (
     <div
       className="h-screen w-screen flex flex-col overflow-hidden text-slate-800"
@@ -194,15 +217,25 @@ export const App: React.FC = () => {
         </div>
       )}
 
-      {/* Top CNAS Header */}
+      {/* Top CNAS Header with 3 Tabs: Home / Tableau de Suivi / Tableau de Bord */}
       <Navbar
+        currentTab={currentTab}
+        onChangeTab={(tab) => {
+          setCurrentTab(tab);
+          if (tab !== 'home') {
+            setSelectedEmployeeId(null);
+          }
+        }}
         selectedEmployee={selectedEmployee}
-        onNavigateHome={() => setSelectedEmployeeId(null)}
+        onNavigateHome={() => {
+          setSelectedEmployeeId(null);
+        }}
         onOpenAbout={() => setIsAboutOpen(true)}
       />
 
       {/* Main Scrollable Content */}
       <main className="flex-1 min-h-0 overflow-y-auto p-5 sm:p-7">
+        {/* If inside Employee Details view */}
         {selectedEmployee ? (
           <EmployeeDetailsView
             employee={selectedEmployee}
@@ -214,10 +247,12 @@ export const App: React.FC = () => {
             }}
             onAddTask={() => {
               setTaskToEdit(null);
+              setTaskTargetEmployeeId(selectedEmployee.id);
               setIsTaskModalOpen(true);
             }}
             onEditTask={(task) => {
               setTaskToEdit(task);
+              setTaskTargetEmployeeId(selectedEmployee.id);
               setIsTaskModalOpen(true);
             }}
             onDeleteTask={(task) => setTaskToDelete(task)}
@@ -226,7 +261,8 @@ export const App: React.FC = () => {
             isExportingPdf={isExportingPdf}
             isExportingCsv={isExportingCsv}
           />
-        ) : (
+        ) : currentTab === 'home' ? (
+          /* TAB 1: HOME (Liste des Employés) */
           <EmployeesListView
             employees={employees}
             onAddEmployee={() => {
@@ -248,11 +284,43 @@ export const App: React.FC = () => {
             isExportingPdf={isExportingPdf}
             isExportingCsv={isExportingCsv}
           />
+        ) : currentTab === 'suivi' ? (
+          /* TAB 2: TABLEAU DE SUIVI (Global Tasks Tracking) */
+          <TaskTrackingView
+            tasks={allTasks}
+            employees={employees}
+            onAddTask={() => {
+              setTaskToEdit(null);
+              setTaskTargetEmployeeId(null);
+              setIsTaskModalOpen(true);
+            }}
+            onEditTask={(task) => {
+              setTaskToEdit(task);
+              setTaskTargetEmployeeId(task.agent_id);
+              setIsTaskModalOpen(true);
+            }}
+            onDeleteTask={(task) => setTaskToDelete(task)}
+            onSelectEmployee={(empId) => {
+              setSelectedEmployeeId(empId);
+            }}
+          />
+        ) : (
+          /* TAB 3: TABLEAU DE BORD (Analytics & Metrics) */
+          <DashboardView
+            employees={employees}
+            tasks={allTasks}
+            onSelectEmployee={(empId) => {
+              setSelectedEmployeeId(empId);
+            }}
+          />
         )}
       </main>
 
-      {/* About Modal with CNAS_logo.png */}
-      <AboutModal isOpen={isAboutOpen} onClose={() => setIsAboutOpen(false)} />
+      {/* About Modal with CNAS_logo.png & Data Backup/Restore */}
+      <AboutModal 
+        isOpen={isAboutOpen} 
+        onClose={() => setIsAboutOpen(false)} 
+      />
 
       {/* Add / Edit Employee Modal */}
       <EmployeeModal
@@ -265,31 +333,38 @@ export const App: React.FC = () => {
         employeeToEdit={employeeToEdit}
         onSaved={async (msg) => {
           await loadEmployees();
+          await loadAllTasks();
           showToast(msg);
         }}
       />
 
       {/* Add / Edit Task Modal */}
-      {selectedEmployee && (
+      {isTaskModalOpen && (
         <TaskModal
           isOpen={isTaskModalOpen}
           onClose={() => {
             setIsTaskModalOpen(false);
             setTaskToEdit(null);
+            setTaskTargetEmployeeId(null);
           }}
-          employeeId={selectedEmployee.id}
+          employeeId={activeTaskEmployee ? activeTaskEmployee.id : 0}
           employeeName={
-            [
-              selectedEmployee.civilite,
-              selectedEmployee.full_name || `Employé #${selectedEmployee.id}`
-            ]
-              .filter(Boolean)
-              .join(' ') || `Employé #${selectedEmployee.id}`
+            activeTaskEmployee
+              ? [
+                  activeTaskEmployee.civilite,
+                  activeTaskEmployee.full_name || `Employé #${activeTaskEmployee.id}`
+                ]
+                  .filter(Boolean)
+                  .join(' ') || `Employé #${activeTaskEmployee.id}`
+              : 'Collaborateur'
           }
           taskToEdit={taskToEdit}
           onSaved={async (msg) => {
-            await loadTasksForEmployee(selectedEmployee.id);
+            if (selectedEmployeeId !== null) {
+              await loadTasksForEmployee(selectedEmployeeId);
+            }
             await loadEmployees();
+            await loadAllTasks();
             showToast(msg);
           }}
         />
