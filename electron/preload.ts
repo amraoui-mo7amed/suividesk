@@ -38,7 +38,26 @@ export const electronAPI = {
 
   // Database Backup / Restore
   backupDatabase: () => ipcRenderer.invoke('db:backup'),
-  restoreDatabase: () => ipcRenderer.invoke('db:restore')
+  restoreDatabase: () => ipcRenderer.invoke('db:restore'),
+
+  // App Lock & Security
+  getLockStatus: () => ipcRenderer.invoke('auth:getStatus'),
+  verifyPassword: (password: string) => ipcRenderer.invoke('auth:verify', password),
+  setPassword: (newPassword: string, currentPassword?: string) =>
+    ipcRenderer.invoke('auth:setPassword', newPassword, currentPassword),
+  disablePassword: (currentPassword: string) => ipcRenderer.invoke('auth:disable', currentPassword),
+  setAutoLockMinutes: (minutes: number) => ipcRenderer.invoke('auth:setAutoLock', minutes),
+
+  // Network Sync (PC <-> PC)
+  getSyncStatus: () => ipcRenderer.invoke('sync:getStatus'),
+  discoverLanPeers: () => ipcRenderer.invoke('sync:discoverPeers'),
+  getSyncPreview: (remoteIp: string, remotePort?: number) =>
+    ipcRenderer.invoke('sync:getPreview', remoteIp, remotePort),
+  executeSync: (remoteIp: string, remotePort?: number) =>
+    ipcRenderer.invoke('sync:execute', remoteIp, remotePort),
+  rollbackSync: () => ipcRenderer.invoke('sync:rollback'),
+  getSyncConflicts: () => ipcRenderer.invoke('sync:getConflicts'),
+  getSyncDevices: () => ipcRenderer.invoke('sync:getDevices')
 };
 
 contextBridge.exposeInMainWorld('electronAPI', electronAPI);

@@ -1,0 +1,547 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Guide d'Exportation et d'Importation de la Base de Données — SuiviDesk CNAS</title>
+<style>
+  @page {
+    size: A4 portrait;
+    margin: 12mm 15mm 12mm 15mm;
+  }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Arial, sans-serif;
+  }
+
+  body {
+    background: #ffffff;
+    color: #1e293b;
+    font-size: 9.5pt;
+    line-height: 1.42;
+  }
+
+  .page {
+    page-break-after: always;
+    position: relative;
+    box-sizing: border-box;
+  }
+
+  .page:last-child {
+    page-break-after: avoid;
+  }
+
+  /* HEADER */
+  .inst-header {
+    border-bottom: 2.5px solid #003A6B;
+    padding-bottom: 7px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .inst-logo-box {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .inst-logo {
+    width: 48px;
+    height: 48px;
+    object-fit: contain;
+  }
+
+  .inst-titles {
+    line-height: 1.25;
+  }
+
+  .inst-country {
+    font-size: 7.8pt;
+    font-weight: 700;
+    color: #475569;
+    text-transform: uppercase;
+    letter-spacing: 0.3px;
+  }
+
+  .inst-name-fr {
+    font-size: 9.8pt;
+    font-weight: 900;
+    color: #003A6B;
+  }
+
+  .inst-name-ar {
+    font-size: 9.2pt;
+    font-weight: 800;
+    color: #005A9E;
+  }
+
+  .inst-badge {
+    text-align: right;
+  }
+
+  .inst-badge-pill {
+    background: #003A6B;
+    color: #ffffff;
+    padding: 3px 10px;
+    border-radius: 6px;
+    font-size: 8.2pt;
+    font-weight: 800;
+    display: inline-block;
+    letter-spacing: 0.2px;
+  }
+
+  .inst-badge-sub {
+    font-size: 7.5pt;
+    color: #64748b;
+    margin-top: 2px;
+    font-weight: 600;
+  }
+
+  /* DOCUMENT TITLE BANNER */
+  .doc-banner {
+    background: linear-gradient(135deg, #003A6B 0%, #005A9E 65%, #0077C2 100%);
+    color: white;
+    padding: 11px 16px;
+    border-radius: 10px;
+    margin-bottom: 12px;
+    box-shadow: 0 4px 10px rgba(0, 58, 107, 0.15);
+  }
+
+  .doc-title {
+    font-size: 13.5pt;
+    font-weight: 900;
+    letter-spacing: -0.2px;
+    line-height: 1.25;
+  }
+
+  .doc-subtitle {
+    font-size: 8.8pt;
+    color: #E0F2FE;
+    font-weight: 600;
+    margin-top: 2px;
+  }
+
+  /* SECTION STYLING */
+  .section {
+    margin-bottom: 12px;
+  }
+
+  .section-title {
+    font-size: 10.5pt;
+    font-weight: 900;
+    color: #003A6B;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1.5px solid #C6DDF2;
+    padding-bottom: 3px;
+    margin-bottom: 7px;
+  }
+
+  .section-num {
+    background: #005A9E;
+    color: white;
+    width: 20px;
+    height: 20px;
+    border-radius: 5px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 8.5pt;
+    font-weight: 900;
+  }
+
+  /* CALLOUT BOXES */
+  .info-box {
+    background: #F0F7FD;
+    border-left: 4px solid #005A9E;
+    border-radius: 0 8px 8px 0;
+    padding: 7px 11px;
+    margin-bottom: 9px;
+    font-size: 8.6pt;
+    line-height: 1.42;
+  }
+
+  .success-box {
+    background: #ECFDF5;
+    border-left: 4px solid #059669;
+    border-radius: 0 8px 8px 0;
+    padding: 7px 11px;
+    margin-bottom: 9px;
+    font-size: 8.6pt;
+    color: #064E3B;
+    line-height: 1.42;
+  }
+
+  /* STEP CARDS */
+  .step-container {
+    display: flex;
+    flex-direction: column;
+    gap: 9px;
+  }
+
+  .step-item {
+    background: #FFFFFF;
+    border: 1px solid #DCE6F1;
+    border-radius: 8px;
+    padding: 8px 11px;
+  }
+
+  .step-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 3px;
+  }
+
+  .step-badge {
+    background: #005A9E;
+    color: white;
+    font-size: 7.8pt;
+    font-weight: 800;
+    padding: 2px 7px;
+    border-radius: 5px;
+  }
+
+  .step-badge.alert {
+    background: #DC2626;
+  }
+
+  .step-name {
+    font-size: 9.2pt;
+    font-weight: 800;
+    color: #003A6B;
+  }
+
+  .step-desc {
+    font-size: 8.6pt;
+    color: #334155;
+    margin-bottom: 4px;
+    line-height: 1.38;
+  }
+
+  /* ILLUSTRATION IMAGES */
+  .figure-box {
+    text-align: center;
+    margin: 4px 0 2px;
+  }
+
+  .figure-img {
+    max-width: 100%;
+    border-radius: 6px;
+    border: 1px solid #C6DDF2;
+    box-shadow: 0 2px 6px rgba(0, 58, 107, 0.08);
+  }
+
+  .figure-caption {
+    font-size: 7.5pt;
+    color: #64748b;
+    font-style: italic;
+    margin-top: 2px;
+  }
+
+  /* GRID TWO COLS */
+  .two-cols {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  /* BEST PRACTICES TABLE */
+  .bp-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 8.3pt;
+    margin-top: 4px;
+  }
+
+  .bp-table th {
+    background: #EEF6FC;
+    color: #003A6B;
+    font-weight: 800;
+    text-align: left;
+    padding: 5px 9px;
+    border: 1px solid #C6DDF2;
+  }
+
+  .bp-table td {
+    padding: 5px 9px;
+    border: 1px solid #E2E8F0;
+    vertical-align: top;
+  }
+
+  .bp-table tr:nth-child(even) td {
+    background: #F8FAFC;
+  }
+
+  /* FOOTER NOTE */
+  .footer-bar {
+    margin-top: 14px;
+    border-top: 1.5px solid #C6DDF2;
+    padding-top: 5px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 7.6pt;
+    color: #64748b;
+  }
+</style>
+</head>
+<body>
+
+  <!-- ======================================================== -->
+  <!-- PAGE 1 : PRÉSENTATION, EMPLACEMENT & VUE GLOBALE DU FLUX -->
+  <!-- ======================================================== -->
+  <div class="page">
+    <div class="inst-header">
+      <div class="inst-logo-box">
+        <img class="inst-logo" src="data:image/png;base64,{{logo_b64}}" alt="Logo CNAS">
+        <div class="inst-titles">
+          <div class="inst-country">République Algérienne Démocratique et Populaire</div>
+          <div class="inst-name-fr">Caisse Nationale des Assurances Sociales des Travailleurs Salariés</div>
+          <div class="inst-name-ar" dir="rtl">الصندوق الوطني للتأمينات الإجتماعية للعمال الأجراء</div>
+        </div>
+      </div>
+      <div class="inst-badge">
+        <div class="inst-badge-pill">SuiviDesk v1.4.0</div>
+        <div class="inst-badge-sub">Guide Pratique Utilisateur</div>
+      </div>
+    </div>
+
+    <div class="doc-banner">
+      <div class="doc-title">Guide Pratique : Exportation & Restauration de la Base de Données</div>
+      <div class="doc-subtitle">Procédure officielle pas à pas pour la sauvegarde, l'archivage et le transfert des données SuiviDesk</div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">
+        <span class="section-num">1</span>
+        <span>Fonctionnement de la Base de Données Locale SQLite</span>
+      </div>
+      <p style="font-size: 8.8pt; margin-bottom: 6px; color: #334155;">
+        L'application <strong>SuiviDesk CNAS</strong> fonctionne de façon 100% autonome et hors-ligne. Tous les enregistrements (collaborateurs, courriers, assignations, wilayas et durées de traitement) sont stockés dans un fichier unique de base de données locale au format <strong>SQLite</strong>.
+      </p>
+
+      <div class="info-box">
+        <strong>📍 Emplacement officiel de vos données sur Windows :</strong><br>
+        <code>%APPDATA%\suividesk\suividesk.sqlite</code> (accessible via le chemin <code>C:\Users\[Session]\AppData\Roaming\suividesk\</code>).<br>
+        <em>Ce fichier autonome regroupe la totalité de vos dossiers administratifs et conserve votre historique.</em>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">
+        <span class="section-num">2</span>
+        <span>Pourquoi et Quand Réaliser une Sauvegarde ?</span>
+      </div>
+      <div class="two-cols">
+        <div style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:8px; padding:7px 9px;">
+          <strong style="color:#003A6B; font-size:8.8pt;">🛡️ Sécurité & Continuité de Service</strong>
+          <p style="font-size:8.1pt; color:#475569; margin-top:2px;">
+            Préservez vos dossiers contre toute défaillance matérielle de votre micro-ordinateur, panne système ou manipulation involontaire.
+          </p>
+        </div>
+        <div style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:8px; padding:7px 9px;">
+          <strong style="color:#003A6B; font-size:8.8pt;">🔄 Changement de Poste ou Formatage</strong>
+          <p style="font-size:8.1pt; color:#475569; margin-top:2px;">
+            Transférez instantanément l'ensemble de votre bureau de suivi vers un nouveau poste CNAS sans perte d'information.
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <div class="section" style="margin-top: 10px;">
+      <div class="section-title">
+        <span class="section-num">3</span>
+        <span>Schéma Synoptique du Cycle de Sauvegarde & Restauration</span>
+      </div>
+      <div class="figure-box">
+        <img class="figure-img" style="width: 100%; max-height: 145px; object-fit: contain;" src="data:image/png;base64,{{step5_b64}}" alt="Schéma du flux">
+        <div class="figure-caption">Figure 1 : Cycle complet d'exportation vers un support externe et d'importation sécurisée</div>
+      </div>
+    </div>
+
+    <div class="footer-bar">
+      <span>CNAS — Direction des Systèmes d'Information • Usage Interne</span>
+      <span>Page 1 sur 3 • SuiviDesk Desktop</span>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- PAGE 2 : PROCÉDURE D'EXPORTATION (SAUVEGARDE)            -->
+  <!-- ======================================================== -->
+  <div class="page">
+    <div class="inst-header">
+      <div class="inst-logo-box">
+        <img class="inst-logo" src="data:image/png;base64,{{logo_b64}}" alt="Logo CNAS">
+        <div class="inst-titles">
+          <div class="inst-name-fr">Caisse Nationale des Assurances Sociales des Travailleurs Salariés</div>
+          <div class="inst-country">SuiviDesk CNAS — Procédure d'Exportation (Sauvegarde)</div>
+        </div>
+      </div>
+      <div class="inst-badge">
+        <div class="inst-badge-pill">Procédure Export</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">
+        <span class="section-num">4</span>
+        <span>Comment Exporter (Sauvegarder) la Base de Données</span>
+      </div>
+      <p style="font-size: 8.6pt; color: #475569; margin-bottom: 7px;">
+        L'exportation crée une copie miroir exacte de votre base sans couper votre session de travail. Suivez ces 3 étapes :
+      </p>
+
+      <div class="step-container">
+        <!-- Step 1 -->
+        <div class="step-item">
+          <div class="step-header">
+            <span class="step-badge alert">Étape 1</span>
+            <span class="step-name">Ouvrir la fenêtre « À propos »</span>
+          </div>
+          <div class="step-desc">
+            Dans la barre de navigation en haut à droite, cliquez sur le bouton <strong>« À propos »</strong> (icône information).
+          </div>
+          <div class="figure-box">
+            <img class="figure-img" style="max-height: 110px; width: 100%; object-fit: contain;" src="data:image/png;base64,{{step1_b64}}" alt="Barre de navigation SuiviDesk">
+            <div class="figure-caption">Figure 2 : Bouton « À propos » dans le menu supérieur droit</div>
+          </div>
+        </div>
+
+        <!-- Step 2 -->
+        <div class="step-item">
+          <div class="step-header">
+            <span class="step-badge">Étape 2</span>
+            <span class="step-name">Cliquer sur « Sauvegarder la base »</span>
+          </div>
+          <div class="step-desc">
+            Dans la fenêtre modale officielle, localisez la section <strong>« Sauvegarde & Sécurité des Données »</strong>, puis cliquez sur le bouton bleu principal <strong>« Sauvegarder la base »</strong>.
+          </div>
+          <div class="figure-box">
+            <img class="figure-img" style="max-height: 165px; object-fit: contain;" src="data:image/png;base64,{{step2_b64}}" alt="Fenêtre À propos">
+            <div class="figure-caption">Figure 3 : Section Sauvegarde et bouton d'exportation de la base SQLite</div>
+          </div>
+        </div>
+
+        <!-- Step 3 -->
+        <div class="step-item">
+          <div class="step-header">
+            <span class="step-badge">Étape 3</span>
+            <span class="step-name">Enregistrer le fichier dans un dossier sécurisé</span>
+          </div>
+          <div class="step-desc">
+            La boîte de dialogue Windows s'ouvre avec un nom horodaté (ex: <code>CNAS_SuiviDesk_Backup_2026-11-16.sqlite</code>). Choisissez le dossier cible (clé USB CNAS, lecteur partagé ou Documents) et validez. Un bandeau vert confirme le succès.
+          </div>
+          <div class="figure-box">
+            <img class="figure-img" style="max-height: 125px; width: 100%; object-fit: contain;" src="data:image/png;base64,{{step3_b64}}" alt="Boîte d'enregistrement Windows">
+            <div class="figure-caption">Figure 4 : Sélection du répertoire cible et confirmation de sauvegarde réussie</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="footer-bar">
+      <span>CNAS — Direction des Systèmes d'Information • Usage Interne</span>
+      <span>Page 2 sur 3 • SuiviDesk Desktop</span>
+    </div>
+  </div>
+
+  <!-- ======================================================== -->
+  <!-- PAGE 3 : PROCÉDURE D'IMPORTATION (RESTAURATION) & CONSEILS-->
+  <!-- ======================================================== -->
+  <div class="page">
+    <div class="inst-header">
+      <div class="inst-logo-box">
+        <img class="inst-logo" src="data:image/png;base64,{{logo_b64}}" alt="Logo CNAS">
+        <div class="inst-titles">
+          <div class="inst-name-fr">Caisse Nationale des Assurances Sociales des Travailleurs Salariés</div>
+          <div class="inst-country">SuiviDesk CNAS — Procédure de Restauration (Importation)</div>
+        </div>
+      </div>
+      <div class="inst-badge">
+        <div class="inst-badge-pill">Procédure Import</div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="section-title">
+        <span class="section-num">5</span>
+        <span>Comment Importer (Restaurer) la Base de Données</span>
+      </div>
+      <p style="font-size: 8.6pt; color: #475569; margin-bottom: 5px;">
+        La fonction de restauration permet de recharger une sauvegarde antérieure afin de retrouver instantanément tous vos dossiers.
+      </p>
+
+      <div class="step-container">
+        <div class="step-item">
+          <div class="step-header">
+            <span class="step-badge">Déroulement</span>
+            <span class="step-name">Les 4 phases de l'importation</span>
+          </div>
+          <ol style="font-size: 8.3pt; color: #334155; padding-left: 17px; line-height: 1.48; margin-bottom: 5px;">
+            <li>Cliquez sur <strong>« À propos »</strong> en haut à droite de l'écran principal.</li>
+            <li>Dans le cadre bleu, cliquez sur le bouton <strong>« Restaurer »</strong> (icône flèche montante).</li>
+            <li>Le message de confirmation s'affiche : confirmez par <strong>« OK »</strong>.</li>
+            <li>Sélectionnez votre fichier <code>.sqlite</code> ou <code>.db</code> puis validez. L'application recharge aussitôt vos données !</li>
+          </ol>
+
+          <div class="figure-box">
+            <img class="figure-img" style="max-height: 170px; width: 100%; object-fit: contain;" src="data:image/png;base64,{{step4_b64}}" alt="Procédure de restauration">
+            <div class="figure-caption">Figure 5 : Confirmation de sécurité et mécanisme de sauvegarde de secours automatique</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="success-box" style="margin-top: 7px;">
+        <strong>🛡️ Protection Automatique Exclusive :</strong><br>
+        Avant tout remplacement de la base active, SuiviDesk génère <strong>automatiquement</strong> une copie de secours nommée <code>suividesk_pre_restore_[horodatage].sqlite</code>. Aucune donnée antérieure ne peut être perdue par accident !
+      </div>
+    </div>
+
+    <div class="section" style="margin-top: 9px;">
+      <div class="section-title">
+        <span class="section-num">6</span>
+        <span>Bonnes Pratiques & Recommandations Informatiques CNAS</span>
+      </div>
+
+      <table class="bp-table">
+        <thead>
+          <tr>
+            <th style="width: 27%;">Critère</th>
+            <th style="width: 73%;">Recommandation Officielle de Sécurité</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Fréquence</strong></td>
+            <td>Réalisez une sauvegarde <strong>hebdomadaire</strong> (le jeudi en fin de journée) ou après chaque saisie volumineuse.</td>
+          </tr>
+          <tr>
+            <td><strong>Support externe</strong></td>
+            <td>Copiez impérativement votre fichier de sauvegarde sur une <strong>clé USB de service</strong> ou un <strong>lecteur réseau CNAS</strong>.</td>
+          </tr>
+          <tr>
+            <td><strong>Intégrité</strong></td>
+            <td>Ne modifiez jamais manuellement le fichier <code>.sqlite</code> avec un éditeur de texte (Bloc-Notes, Word, etc.).</td>
+          </tr>
+          <tr>
+            <td><strong>Mises à jour</strong></td>
+            <td>L'installation des nouvelles versions de SuiviDesk préserve automatiquement vos données sans écrasement.</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="footer-bar">
+      <span>CNAS — Direction des Systèmes d'Information • Usage Interne</span>
+      <span>Page 3 sur 3 • SuiviDesk Desktop</span>
+    </div>
+  </div>
+
+</body>
+</html>

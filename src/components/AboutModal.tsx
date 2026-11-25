@@ -90,7 +90,7 @@ export const AboutModal: React.FC<AboutModalProps> = ({
             الصندوق الوطني للتأمينات الإجتماعية للعمال الأجراء
           </p>
           <div className="inline-flex items-center space-x-1.5 mt-3 px-3 py-0.5 rounded-full bg-white/20 text-[11px] font-bold tracking-wide">
-            <span>Version 1.4.0</span>
+            <span>Version 1.5.0</span>
             <span>•</span>
             <span>Édition Desktop</span>
           </div>

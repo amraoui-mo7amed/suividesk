@@ -6,6 +6,9 @@ import { AboutModal } from './components/AboutModal';
 import { ConfirmModal } from './components/ConfirmModal';
 import { EmployeeModal } from './components/EmployeeModal';
 import { TaskModal } from './components/TaskModal';
+import { LockScreenOverlay } from './components/LockScreenOverlay';
+import { SecurityModal } from './components/SecurityModal';
+import { NetworkSyncModal } from './components/NetworkSyncModal';
 import { EmployeeDetailsView } from './components/views/EmployeeDetailsView';
 import { TaskTrackingView } from './components/views/TaskTrackingView';
 import { DashboardView } from './components/views/DashboardView';
@@ -13,6 +16,13 @@ import { DashboardView } from './components/views/DashboardView';
 export const App: React.FC = () => {
   // Navigation State: 'dashboard' (Home) | 'suivi' | 'home' (Collaborateurs)
   const [currentTab, setCurrentTab] = useState<MainNavTab>('dashboard');
+
+  // Security & App Lock State
+  const [isLocked, setIsLocked] = useState(false);
+  const [isPasswordConfigured, setIsPasswordConfigured] = useState(false);
+  const [autoLockMinutes, setAutoLockMinutes] = useState(0);
+  const [isSecurityModalOpen, setIsSecurityModalOpen] = useState(false);
+  const [isSyncModalOpen, setIsSyncModalOpen] = useState(false);
 
   // Core Data State
   const [employees, setEmployees] = useState<Employee[]>([]);
@@ -78,6 +88,62 @@ export const App: React.FC = () => {
     loadEmployees();
     loadAllTasks();
   }, [loadEmployees, loadAllTasks]);
+
+  // Initial security status check
+  useEffect(() => {
+    const checkSecurity = async () => {
+      if (!window.electronAPI) return;
+      try {
+        const status = await window.electronAPI.getLockStatus();
+        setIsPasswordConfigured(status.isConfigured);
+        setAutoLockMinutes(status.autoLockMinutes || 0);
+        if (status.isConfigured) {
+          setIsLocked(true);
+        }
+      } catch (err) {
+        console.error('Erreur vérification statut de sécurité:', err);
+      }
+    };
+    checkSecurity();
+  }, []);
+
+  // Keyboard shortcut Ctrl+L for immediate lock
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'l') {
+        if (isPasswordConfigured) {
+          e.preventDefault();
+          setIsLocked(true);
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isPasswordConfigured]);
+
+  // Inactivity auto-lock timer
+  useEffect(() => {
+    if (!isPasswordConfigured || autoLockMinutes <= 0 || isLocked) return;
+
+    let timeoutId: any;
+
+    const resetTimer = () => {
+      clearTimeout(timeoutId);
+      timeoutId = setTimeout(() => {
+        setIsLocked(true);
+      }, autoLockMinutes * 60 * 1000);
+    };
+
+    resetTimer();
+
+    const activityEvents = ['mousemove', 'keydown', 'mousedown', 'touchstart', 'scroll'];
+    activityEvents.forEach((ev) => window.addEventListener(ev, resetTimer));
+
+    return () => {
+      clearTimeout(timeoutId);
+      activityEvents.forEach((ev) => window.removeEventListener(ev, resetTimer));
+    };
+  }, [isPasswordConfigured, autoLockMinutes, isLocked]);
 
   useEffect(() => {
     if (selectedEmployeeId !== null) {
@@ -231,6 +297,10 @@ export const App: React.FC = () => {
           setCurrentTab('dashboard');
         }}
         onOpenAbout={() => setIsAboutOpen(true)}
+        isPasswordConfigured={isPasswordConfigured}
+        onLockApp={() => setIsLocked(true)}
+        onOpenSecurity={() => setIsSecurityModalOpen(true)}
+        onOpenSync={() => setIsSyncModalOpen(true)}
       />
 
       {/* Main Scrollable Content */}
@@ -376,6 +446,36 @@ export const App: React.FC = () => {
         onCancel={() => setTaskToDelete(null)}
         isLoading={isDeleting}
       />
+
+      {/* Security & Password Settings Modal */}
+      <SecurityModal
+        isOpen={isSecurityModalOpen}
+        onClose={() => setIsSecurityModalOpen(false)}
+        onStatusChange={(configured, minutes) => {
+          setIsPasswordConfigured(configured);
+          setAutoLockMinutes(minutes);
+        }}
+      />
+
+      {/* Network Sync (PC <-> PC) Modal */}
+      <NetworkSyncModal
+        isOpen={isSyncModalOpen}
+        onClose={() => setIsSyncModalOpen(false)}
+        onSyncComplete={async () => {
+          await loadEmployees();
+          await loadAllTasks();
+          showToast('Données synchronisées avec succès !');
+        }}
+      />
+
+      {/* Full-Screen Lock Overlay */}
+      {isLocked && (
+        <LockScreenOverlay
+          onUnlock={() => {
+            setIsLocked(false);
+          }}
+        />
+      )}
     </div>
   );
 };

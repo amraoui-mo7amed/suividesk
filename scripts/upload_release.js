@@ -5,7 +5,7 @@ const { execSync } = require('child_process');
 
 const REPO_OWNER = 'amraoui-mo7amed';
 const REPO_NAME = 'suividesk';
-const TAG = 'v1.4.0';
+const TAG = 'v1.5.0';
 
 function getAuthToken() {
   try {
@@ -137,14 +137,12 @@ async function main() {
   const release = await getRelease(token);
   console.log(`Found release ${release.name} (ID: ${release.id})`);
 
-  // Target files in order of priority:
-  // 1. x64 installer (primary for 99% of users)
-  // 2. MSI installer
-  // 3. ARM64 installer
+  const ver = TAG.replace('v', '');
   const files = [
-    path.join(__dirname, '..', 'release', 'SuiviDesk-Setup-1.4.0-x64.exe'),
-    path.join(__dirname, '..', 'release', 'SuiviDesk-Installer-1.4.0-x64.msi'),
-    path.join(__dirname, '..', 'release', 'SuiviDesk-Setup-1.4.0-arm64.exe')
+    path.join(__dirname, '..', 'release', `SuiviDesk-Setup-${ver}-x64.exe`),
+    path.join(__dirname, '..', 'release', `SuiviDesk-Installer-${ver}-x64.msi`),
+    path.join(__dirname, '..', 'release', `SuiviDesk-Setup-${ver}-arm64.exe`),
+    path.join(__dirname, '..', 'release', `SuiviDesk-Setup-${ver}.exe`)
   ];
 
   for (const filePath of files) {
@@ -165,7 +163,7 @@ async function main() {
     await uploadAssetWithProgress(token, release.id, filePath);
   }
 
-  console.log('\n🎉 ALL ASSETS SUCCESSFULLY UPLOADED TO v1.4.0!');
+  console.log(`\n🎉 ALL ASSETS SUCCESSFULLY UPLOADED TO ${TAG}!`);
 }
 
 main().catch((err) => {

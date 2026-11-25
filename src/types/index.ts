@@ -6,6 +6,7 @@ export type TaskPriority = 'Basse' | 'Moyenne' | 'Haute' | 'Urgente' | '';
 
 export interface Employee {
   id: number;
+  sync_uuid?: string;
   civilite: Civilite;
   full_name: string;
   file_name?: string;
@@ -13,6 +14,7 @@ export interface Employee {
   file_type?: string;
   created_at?: string;
   updated_at?: string;
+  is_deleted?: number;
   // Computed task summary counts
   tasks_count?: number;
   traite_count?: number;
@@ -50,6 +52,7 @@ export interface TaskAttachmentInput {
 
 export interface TaskItem {
   id: number;
+  sync_uuid?: string;
   agent_id: number | null;
   titre: string; // Task Name
   sujet: string; // Task Subject
@@ -66,6 +69,7 @@ export interface TaskItem {
   note_finale: string; // la note finale
   created_at?: string;
   updated_at?: string;
+  is_deleted?: number;
   // Computed fields
   duree_traitement_jours?: number | null;
   agent_full_name?: string;
@@ -210,6 +214,58 @@ export function getEtatCourrierLabel(etat?: EtatCourrier | string): string {
   }
 }
 
+export interface AuthStatus {
+  isConfigured: boolean;
+  autoLockMinutes: number;
+}
+
+export interface SyncPeer {
+  ip: string;
+  port: number;
+  name: string;
+  deviceId: string;
+}
+
+export interface SyncPreviewData {
+  remoteDeviceId: string;
+  remoteWorkstation: string;
+  remoteIp: string;
+  incoming: {
+    newEmployees: number;
+    updatedEmployees: number;
+    deletedEmployees: number;
+    newTasks: number;
+    updatedTasks: number;
+    deletedTasks: number;
+    missingDocuments: Array<{ name: string; size: number; sync_uuid: string }>;
+  };
+  outgoing: {
+    newEmployees: number;
+    updatedEmployees: number;
+    newTasks: number;
+    updatedTasks: number;
+  };
+}
+
+export interface SyncStatus {
+  deviceId: string;
+  workstationName: string;
+  port: number;
+}
+
+export interface SyncResult {
+  success: boolean;
+  appliedCount?: number;
+  conflictCount?: number;
+  error?: string;
+}
+
+export interface SyncRollbackResult {
+  success: boolean;
+  error?: string;
+  backupName?: string;
+}
+
 declare global {
   interface Window {
     electronAPI?: {
@@ -244,6 +300,22 @@ declare global {
       openExternal: (url: string) => Promise<void>;
       backupDatabase: () => Promise<{ success: boolean; filePath?: string; error?: string }>;
       restoreDatabase: () => Promise<{ success: boolean; error?: string }>;
+
+      // App Lock & Security
+      getLockStatus: () => Promise<AuthStatus>;
+      verifyPassword: (password: string) => Promise<{ success: boolean }>;
+      setPassword: (newPassword: string, currentPassword?: string) => Promise<{ success: boolean; error?: string }>;
+      disablePassword: (currentPassword: string) => Promise<{ success: boolean; error?: string }>;
+      setAutoLockMinutes: (minutes: number) => Promise<{ success: boolean }>;
+
+      // Network Sync
+      getSyncStatus: () => Promise<SyncStatus>;
+      discoverLanPeers: () => Promise<SyncPeer[]>;
+      getSyncPreview: (remoteIp: string, remotePort?: number) => Promise<{ success: boolean; preview?: SyncPreviewData; error?: string }>;
+      executeSync: (remoteIp: string, remotePort?: number) => Promise<SyncResult>;
+      rollbackSync: () => Promise<SyncRollbackResult>;
+      getSyncConflicts: () => Promise<any[]>;
+      getSyncDevices: () => Promise<any[]>;
     };
   }
 }

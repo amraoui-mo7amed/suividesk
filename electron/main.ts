@@ -1,9 +1,32 @@
 import { app, BrowserWindow, Menu, nativeTheme, ipcMain, shell, dialog, nativeImage } from 'electron';
 import path from 'path';
 import fs from 'fs';
+import os from 'os';
+import crypto from 'crypto';
 import * as mammoth from 'mammoth';
 import * as XLSX from 'xlsx';
-import { getDatabase, getUserFilesDirectory, getTaskFilesDirectory } from './db.js';
+import {
+  getDatabase,
+  getUserFilesDirectory,
+  getTaskFilesDirectory,
+  isPasswordSet,
+  verifyPassword,
+  setAppPassword,
+  disableAppPassword,
+  getAutoLockMinutes,
+  setAutoLockMinutes,
+  getOrCreateDeviceId,
+  getWorkstationName,
+  getSyncConflicts,
+  getKnownDevices
+} from './db.js';
+import {
+  startLocalSyncServer,
+  discoverLanPeers,
+  requestRemoteSyncPreview,
+  executeBidirectionalSync,
+  rollbackLastSync
+} from './syncEngine.js';
 import {
   exportEmployeesPdf,
   exportEmployeesCsv,
@@ -189,7 +212,7 @@ function createWindow() {
 
 function enrichEmployeeCounts(db: ReturnType<typeof getDatabase>, emp: any) {
   const tasks = db
-    .prepare('SELECT etat_courrier FROM task_assignments WHERE agent_id = ?')
+    .prepare('SELECT etat_courrier FROM task_assignments WHERE agent_id = ? AND COALESCE(is_deleted, 0) = 0')
     .all(emp.id) as Array<{ etat_courrier: string }>;
 
   let traiteCount = 0;
@@ -221,6 +244,7 @@ function registerIpcHandlers() {
     const rows = db
       .prepare(
         `SELECT * FROM employees
+         WHERE COALESCE(is_deleted, 0) = 0
          ORDER BY
            CASE WHEN TRIM(COALESCE(full_name, '')) = '' THEN 1 ELSE 0 END ASC,
            LOWER(TRIM(full_name)) ASC,
@@ -232,7 +256,7 @@ function registerIpcHandlers() {
   });
 
   ipcMain.handle('employees:getById', async (_, id: number) => {
-    const emp = db.prepare('SELECT * FROM employees WHERE id = ?').get(id);
+    const emp = db.prepare('SELECT * FROM employees WHERE id = ? AND COALESCE(is_deleted, 0) = 0').get(id);
     if (!emp) return null;
     return enrichEmployeeCounts(db, emp);
   });
@@ -244,7 +268,7 @@ function registerIpcHandlers() {
 
       if (fullName !== '') {
         const existing = db
-          .prepare('SELECT id FROM employees WHERE LOWER(TRIM(full_name)) = LOWER(?)')
+          .prepare('SELECT id FROM employees WHERE LOWER(TRIM(full_name)) = LOWER(?) AND COALESCE(is_deleted, 0) = 0')
           .get(fullName);
         if (existing) {
           return {
@@ -265,14 +289,15 @@ function registerIpcHandlers() {
         fileType = saved.fileType;
       }
 
+      const syncUuid = crypto.randomUUID();
       const res = db
         .prepare(
-          `INSERT INTO employees (civilite, full_name, file_name, file_path, file_type)
-           VALUES (?, ?, ?, ?, ?)`
+          `INSERT INTO employees (sync_uuid, civilite, full_name, file_name, file_path, file_type, updated_at, is_deleted)
+           VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, 0)`
         )
-        .run(civilite, fullName, fileName, filePath, fileType);
+        .run(syncUuid, civilite, fullName, fileName, filePath, fileType);
 
-      return { success: true, id: Number(res.lastInsertRowid) };
+      return { success: true, id: Number(res.lastInsertRowid), sync_uuid: syncUuid };
     } catch (err: any) {
       return { success: false, error: err.message || 'Erreur lors de la création de l’employé.' };
     }
@@ -280,7 +305,7 @@ function registerIpcHandlers() {
 
   ipcMain.handle('employees:update', async (_, id: number, data) => {
     try {
-      const current = db.prepare('SELECT * FROM employees WHERE id = ?').get(id) as any;
+      const current = db.prepare('SELECT * FROM employees WHERE id = ? AND COALESCE(is_deleted, 0) = 0').get(id) as any;
       if (!current) {
         return { success: false, error: 'Employé introuvable.' };
       }
@@ -290,7 +315,7 @@ function registerIpcHandlers() {
 
       if (fullName !== '') {
         const duplicate = db
-          .prepare('SELECT id FROM employees WHERE LOWER(TRIM(full_name)) = LOWER(?) AND id != ?')
+          .prepare('SELECT id FROM employees WHERE LOWER(TRIM(full_name)) = LOWER(?) AND id != ? AND COALESCE(is_deleted, 0) = 0')
           .get(fullName, id);
         if (duplicate) {
           return {
@@ -346,32 +371,17 @@ function registerIpcHandlers() {
 
   ipcMain.handle('employees:delete', async (_, id: number) => {
     try {
-      const current = db.prepare('SELECT file_path FROM employees WHERE id = ?').get(id) as any;
-      if (current?.file_path && fs.existsSync(current.file_path)) {
-        try {
-          fs.unlinkSync(current.file_path);
-        } catch {}
-      }
-
-      // Clean up all task files belonging to this employee
-      const taskDocs = db.prepare(
-        `SELECT d.file_path FROM task_documents d
-         JOIN task_assignments t ON d.task_id = t.id
-         WHERE t.agent_id = ?`
-      ).all(id) as any[];
-      for (const td of taskDocs) {
-        if (td?.file_path && fs.existsSync(td.file_path)) {
-          try {
-            fs.unlinkSync(td.file_path);
-          } catch {}
-        }
-      }
-
+      // Soft-delete employee and associated tasks and documents for sync replication
       db.prepare(
-        `DELETE FROM task_documents WHERE task_id IN (SELECT id FROM task_assignments WHERE agent_id = ?)`
+        `UPDATE task_documents SET is_deleted = 1, updated_at = CURRENT_TIMESTAMP
+         WHERE task_id IN (SELECT id FROM task_assignments WHERE agent_id = ?)`
       ).run(id);
-      db.prepare('DELETE FROM task_assignments WHERE agent_id = ?').run(id);
-      db.prepare('DELETE FROM employees WHERE id = ?').run(id);
+      db.prepare(
+        `UPDATE task_assignments SET is_deleted = 1, updated_at = CURRENT_TIMESTAMP WHERE agent_id = ?`
+      ).run(id);
+      db.prepare(
+        `UPDATE employees SET is_deleted = 1, updated_at = CURRENT_TIMESTAMP WHERE id = ?`
+      ).run(id);
       return { success: true };
     } catch (err: any) {
       return { success: false, error: err.message || 'Erreur lors de la suppression.' };
@@ -387,7 +397,7 @@ function registerIpcHandlers() {
         `SELECT t.*, e.full_name AS agent_full_name, e.civilite AS agent_civilite
          FROM task_assignments t
          LEFT JOIN employees e ON t.agent_id = e.id
-         WHERE t.agent_id = ?
+         WHERE t.agent_id = ? AND COALESCE(t.is_deleted, 0) = 0
          ORDER BY t.id DESC`
       )
       .all(employeeId) as any[];
@@ -396,7 +406,7 @@ function registerIpcHandlers() {
       ...r,
       duree_traitement_jours: computeTreatmentDays(r.date_debut, r.date_finale),
       documents: db
-        .prepare('SELECT * FROM task_documents WHERE task_id = ? ORDER BY id ASC')
+        .prepare('SELECT * FROM task_documents WHERE task_id = ? AND COALESCE(is_deleted, 0) = 0 ORDER BY id ASC')
         .all(r.id)
     }));
   });
@@ -407,6 +417,7 @@ function registerIpcHandlers() {
         `SELECT t.*, e.full_name AS agent_full_name, e.civilite AS agent_civilite
          FROM task_assignments t
          LEFT JOIN employees e ON t.agent_id = e.id
+         WHERE COALESCE(t.is_deleted, 0) = 0
          ORDER BY t.id DESC`
       )
       .all() as any[];
@@ -415,7 +426,7 @@ function registerIpcHandlers() {
       ...r,
       duree_traitement_jours: computeTreatmentDays(r.date_debut, r.date_finale),
       documents: db
-        .prepare('SELECT * FROM task_documents WHERE task_id = ? ORDER BY id ASC')
+        .prepare('SELECT * FROM task_documents WHERE task_id = ? AND COALESCE(is_deleted, 0) = 0 ORDER BY id ASC')
         .all(r.id)
     }));
   });
@@ -429,7 +440,7 @@ function registerIpcHandlers() {
           error: 'Une tâche doit obligatoirement être assignée à un collaborateur existant.'
         };
       }
-      const agentExists = db.prepare('SELECT id FROM employees WHERE id = ?').get(agentId);
+      const agentExists = db.prepare('SELECT id FROM employees WHERE id = ? AND COALESCE(is_deleted, 0) = 0').get(agentId);
       if (!agentExists) {
         return {
           success: false,
@@ -437,14 +448,17 @@ function registerIpcHandlers() {
         };
       }
 
+      const taskSyncUuid = crypto.randomUUID();
       const res = db
         .prepare(
           `INSERT INTO task_assignments (
-             agent_id, titre, sujet, personne_cible, reference_dossier, wilaya, priorite,
-             date_courrier, date_distribution, date_debut, date_finale, etat_courrier, note, note_finale
-           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+             sync_uuid, agent_id, titre, sujet, personne_cible, reference_dossier, wilaya, priorite,
+             date_courrier, date_distribution, date_debut, date_finale, etat_courrier, note, note_finale,
+             updated_at, is_deleted
+           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, 0)`
         )
         .run(
+          taskSyncUuid,
           agentId,
           (data?.titre || '').trim(),
           (data?.sujet || '').trim(),
@@ -466,20 +480,20 @@ function registerIpcHandlers() {
       // Save attachments if provided
       if (Array.isArray(data?.attachments) && data.attachments.length > 0) {
         const insertDoc = db.prepare(
-          `INSERT INTO task_documents (task_id, file_name, file_path, file_type, file_size)
-           VALUES (?, ?, ?, ?, ?)`
+          `INSERT INTO task_documents (sync_uuid, task_id, file_name, file_path, file_type, file_size, updated_at, is_deleted)
+           VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, 0)`
         );
         for (const att of data.attachments) {
           try {
             const saved = saveTaskAttachment(att);
-            insertDoc.run(taskId, saved.fileName, saved.filePath, saved.fileType, saved.fileSize);
+            insertDoc.run(crypto.randomUUID(), taskId, saved.fileName, saved.filePath, saved.fileType, saved.fileSize);
           } catch (fileErr) {
             console.error('Erreur enregistrement pièce jointe de tâche:', fileErr);
           }
         }
       }
 
-      return { success: true, id: taskId };
+      return { success: true, id: taskId, sync_uuid: taskSyncUuid };
     } catch (err: any) {
       return { success: false, error: err.message || 'Erreur lors de l’ajout de la tâche.' };
     }
@@ -523,31 +537,23 @@ function registerIpcHandlers() {
         id
       );
 
-      // Handle removed documents
+      // Handle removed documents (soft delete)
       if (Array.isArray(data?.removedDocIds) && data.removedDocIds.length > 0) {
         for (const docId of data.removedDocIds) {
-          const docRow = db
-            .prepare('SELECT file_path FROM task_documents WHERE id = ? AND task_id = ?')
-            .get(docId, id) as any;
-          if (docRow?.file_path && fs.existsSync(docRow.file_path)) {
-            try {
-              fs.unlinkSync(docRow.file_path);
-            } catch {}
-          }
-          db.prepare('DELETE FROM task_documents WHERE id = ? AND task_id = ?').run(docId, id);
+          db.prepare('UPDATE task_documents SET is_deleted = 1, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND task_id = ?').run(docId, id);
         }
       }
 
       // Handle newly attached documents
       if (Array.isArray(data?.attachments) && data.attachments.length > 0) {
         const insertDoc = db.prepare(
-          `INSERT INTO task_documents (task_id, file_name, file_path, file_type, file_size)
-           VALUES (?, ?, ?, ?, ?)`
+          `INSERT INTO task_documents (sync_uuid, task_id, file_name, file_path, file_type, file_size, updated_at, is_deleted)
+           VALUES (?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, 0)`
         );
         for (const att of data.attachments) {
           try {
             const saved = saveTaskAttachment(att);
-            insertDoc.run(id, saved.fileName, saved.filePath, saved.fileType, saved.fileSize);
+            insertDoc.run(crypto.randomUUID(), id, saved.fileName, saved.filePath, saved.fileType, saved.fileSize);
           } catch (fileErr) {
             console.error('Erreur enregistrement pièce jointe de tâche:', fileErr);
           }
@@ -562,16 +568,8 @@ function registerIpcHandlers() {
 
   ipcMain.handle('tasks:delete', async (_, id: number) => {
     try {
-      const docs = db.prepare('SELECT file_path FROM task_documents WHERE task_id = ?').all(id) as any[];
-      for (const d of docs) {
-        if (d?.file_path && fs.existsSync(d.file_path)) {
-          try {
-            fs.unlinkSync(d.file_path);
-          } catch {}
-        }
-      }
-      db.prepare('DELETE FROM task_documents WHERE task_id = ?').run(id);
-      db.prepare('DELETE FROM task_assignments WHERE id = ?').run(id);
+      db.prepare('UPDATE task_documents SET is_deleted = 1, updated_at = CURRENT_TIMESTAMP WHERE task_id = ?').run(id);
+      db.prepare('UPDATE task_assignments SET is_deleted = 1, updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(id);
       return { success: true };
     } catch (err: any) {
       return { success: false, error: err.message || 'Erreur lors de la suppression de la tâche.' };
@@ -922,11 +920,92 @@ function registerIpcHandlers() {
       return { success: false, error: err.message || 'Erreur lors de la restauration.' };
     }
   });
+
+  // -------------------------------------------------------------
+  // 6. Security & App Lock Handlers
+  // -------------------------------------------------------------
+  ipcMain.handle('auth:getStatus', async () => {
+    return {
+      isConfigured: isPasswordSet(),
+      autoLockMinutes: getAutoLockMinutes()
+    };
+  });
+
+  ipcMain.handle('auth:verify', async (_, password: string) => {
+    return { success: verifyPassword(password) };
+  });
+
+  ipcMain.handle('auth:setPassword', async (_, newPassword: string, currentPassword?: string) => {
+    return setAppPassword(newPassword, currentPassword);
+  });
+
+  ipcMain.handle('auth:disable', async (_, currentPassword: string) => {
+    return disableAppPassword(currentPassword);
+  });
+
+  ipcMain.handle('auth:setAutoLock', async (_, minutes: number) => {
+    setAutoLockMinutes(Number(minutes) || 0);
+    return { success: true };
+  });
+
+  // -------------------------------------------------------------
+  // 7. Network Synchronization Handlers (PC <-> PC)
+  // -------------------------------------------------------------
+  ipcMain.handle('sync:getStatus', async () => {
+    return {
+      deviceId: getOrCreateDeviceId(),
+      workstationName: getWorkstationName(),
+      port: 4850
+    };
+  });
+
+  ipcMain.handle('sync:discoverPeers', async () => {
+    try {
+      const peers = await discoverLanPeers(4850);
+      return peers;
+    } catch (err: any) {
+      console.error('Peer discovery error:', err);
+      return [];
+    }
+  });
+
+  ipcMain.handle('sync:getPreview', async (_, remoteIp: string, remotePort?: number) => {
+    try {
+      const preview = await requestRemoteSyncPreview(remoteIp, remotePort || 4850);
+      return { success: true, preview };
+    } catch (err: any) {
+      return { success: false, error: err.message || 'Impossible de contacter le poste distant.' };
+    }
+  });
+
+  ipcMain.handle('sync:execute', async (_, remoteIp: string, remotePort?: number) => {
+    try {
+      const result = await executeBidirectionalSync(remoteIp, remotePort || 4850);
+      return result;
+    } catch (err: any) {
+      return { success: false, error: err.message || 'Erreur lors de la synchronisation.' };
+    }
+  });
+
+  ipcMain.handle('sync:rollback', async () => {
+    return rollbackLastSync();
+  });
+
+  ipcMain.handle('sync:getConflicts', async () => {
+    return getSyncConflicts();
+  });
+
+  ipcMain.handle('sync:getDevices', async () => {
+    return getKnownDevices();
+  });
 }
 
 if (app) {
   app.whenReady().then(() => {
     registerIpcHandlers();
+    startLocalSyncServer(4850).catch((err) => {
+      console.warn('Sync server start warning:', err);
+    });
     createWindow();
 
     app.on('activate', () => {

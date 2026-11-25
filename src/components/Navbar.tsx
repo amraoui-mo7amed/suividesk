@@ -6,7 +6,10 @@ import {
   Home, 
   ClipboardList, 
   LayoutDashboard,
-  Database
+  Database,
+  Lock,
+  ShieldCheck,
+  RefreshCw
 } from 'lucide-react';
 import { Employee } from '../types';
 
@@ -19,6 +22,10 @@ interface NavbarProps {
   onNavigateHome: () => void;
   onOpenAbout: () => void;
   onBackupRestore?: () => void;
+  isPasswordConfigured?: boolean;
+  onLockApp?: () => void;
+  onOpenSecurity?: () => void;
+  onOpenSync?: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -27,7 +34,11 @@ export const Navbar: React.FC<NavbarProps> = ({
   selectedEmployee,
   onNavigateHome,
   onOpenAbout,
-  onBackupRestore
+  onBackupRestore,
+  isPasswordConfigured,
+  onLockApp,
+  onOpenSecurity,
+  onOpenSync
 }) => {
   return (
     <header className="sticky top-0 z-30 border-b-2 bg-white border-[#9EC3E6] text-slate-900 shadow-sm select-none">
@@ -99,8 +110,44 @@ export const Navbar: React.FC<NavbarProps> = ({
           </button>
         </nav>
 
-        {/* Right: About Button */}
+        {/* Right: Security, Sync, & About Buttons */}
         <div className="flex items-center space-x-2">
+          {/* LAN Sync Button */}
+          {onOpenSync && (
+            <button
+              onClick={onOpenSync}
+              className="flex items-center space-x-1.5 px-3 py-2 rounded-xl text-xs font-bold cnas-btn-secondary active:scale-95 cursor-pointer text-[#005A9E]"
+              title="Synchronisation réseau local (PC à PC)"
+            >
+              <RefreshCw className="w-4 h-4 text-[#005A9E]" />
+              <span className="hidden md:inline">Synchronisation</span>
+            </button>
+          )}
+
+          {/* Quick Lock Button (Visible when password is set) */}
+          {isPasswordConfigured && onLockApp && (
+            <button
+              onClick={onLockApp}
+              className="flex items-center space-x-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-amber-50 border border-amber-300 text-amber-800 hover:bg-amber-100 active:scale-95 cursor-pointer"
+              title="Verrouiller la session immédiatement"
+            >
+              <Lock className="w-4 h-4 text-amber-600" />
+              <span className="hidden lg:inline">Verrouiller</span>
+            </button>
+          )}
+
+          {/* Security Settings Modal Button */}
+          {onOpenSecurity && (
+            <button
+              onClick={onOpenSecurity}
+              className="flex items-center space-x-1.5 p-2 sm:px-2.5 sm:py-2 rounded-xl text-xs font-bold cnas-btn-secondary active:scale-95 cursor-pointer text-[#005A9E]"
+              title="Paramètres de sécurité & Mot de passe"
+            >
+              <ShieldCheck className="w-4 h-4 text-[#005A9E]" />
+            </button>
+          )}
+
+          {/* About Modal Button */}
           <button
             onClick={onOpenAbout}
             className="flex items-center space-x-1.5 px-3 py-2 rounded-xl text-xs font-bold cnas-btn-secondary active:scale-95 cursor-pointer"
