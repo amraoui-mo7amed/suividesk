@@ -224,6 +224,12 @@ export interface SyncPeer {
   port: number;
   name: string;
   deviceId: string;
+  deviceType?: 'phone' | 'desktop' | 'router' | 'other';
+  isSuiviDesk?: boolean;
+  mac?: string;
+  vendor?: string;
+  statusText?: string;
+  version?: string;
 }
 
 export interface SyncPreviewData {

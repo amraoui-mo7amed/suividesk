@@ -3,6 +3,8 @@ import fs from 'fs';
 import path from 'path';
 import os from 'os';
 import crypto from 'crypto';
+import { exec } from 'child_process';
+import dns from 'dns';
 import {
   getDatabase,
   getDatabasePath,
@@ -490,6 +492,36 @@ export function startLocalSyncServer(preferredPort = 4850): Promise<number> {
       const parsedUrl = new URL(req.url || '/', `http://${req.headers.host || 'localhost'}`);
       const pathname = parsedUrl.pathname;
 
+      // Endpoint: POST /api/sync/announce (Permet à un smartphone ou poste SuiviDesk de s'annoncer)
+      if (req.method === 'POST' && pathname === '/api/sync/announce') {
+        let body = '';
+        req.on('data', (chunk) => (body += chunk));
+        req.on('end', () => {
+          try {
+            const data = JSON.parse(body || '{}');
+            const remoteIp = (req.socket.remoteAddress || '').replace(/^.*:/, '');
+            if (remoteIp) {
+              activeAnnouncedPeers.set(remoteIp, {
+                ip: remoteIp,
+                port: data.port || 4850,
+                name: data.deviceName || 'Smartphone Mobile',
+                deviceId: data.deviceId || `device-${remoteIp.replace(/\./g, '-')}`,
+                deviceType: (data.deviceType as any) || 'phone',
+                isSuiviDesk: true,
+                version: data.version || '1.5.0',
+                statusText: 'SuiviDesk Mobile Prêt'
+              });
+            }
+            res.writeHead(200, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ success: true, message: 'Appareil enregistré avec succès' }));
+          } catch (e: any) {
+            res.writeHead(400, { 'Content-Type': 'application/json' });
+            res.end(JSON.stringify({ error: e.message }));
+          }
+        });
+        return;
+      }
+
       // Endpoint: GET /api/sync/info
       if (req.method === 'GET' && pathname === '/api/sync/info') {
         const info = {
@@ -603,34 +635,114 @@ export function stopLocalSyncServer(): Promise<void> {
 }
 
 // -------------------------------------------------------------
-// 6. Subnet Peer Discovery
+// 6. Subnet Peer & Device Discovery (Smartphones & Desktops)
 // -------------------------------------------------------------
 
-export async function discoverLanPeers(port = 4850): Promise<Array<{ ip: string; port: number; name: string; deviceId: string }>> {
+export interface DiscoveredPeerInfo {
+  ip: string;
+  port: number;
+  name: string;
+  deviceId: string;
+  deviceType: 'phone' | 'desktop' | 'router' | 'other';
+  isSuiviDesk: boolean;
+  mac?: string;
+  vendor?: string;
+  version?: string;
+  statusText?: string;
+}
+
+const activeAnnouncedPeers = new Map<string, DiscoveredPeerInfo>();
+
+const KNOWN_OUIs: Record<string, { vendor: string; type: 'phone' | 'desktop' | 'router'; label: string }> = {
+  // Mobile / Smartphone brands
+  'a4:55:90': { vendor: 'Xiaomi', type: 'phone', label: 'Smartphone Xiaomi Redmi/Poco' },
+  '98:90:96': { vendor: 'Xiaomi', type: 'phone', label: 'Smartphone Xiaomi' },
+  'd8:43:ae': { vendor: 'Xiaomi', type: 'phone', label: 'Smartphone Xiaomi' },
+  '78:02:f8': { vendor: 'Xiaomi', type: 'phone', label: 'Smartphone Xiaomi' },
+  '64:cc:2e': { vendor: 'Xiaomi', type: 'phone', label: 'Smartphone Xiaomi' },
+  '34:ce:00': { vendor: 'Xiaomi', type: 'phone', label: 'Smartphone Xiaomi' },
+  '28:6c:07': { vendor: 'Xiaomi', type: 'phone', label: 'Smartphone Xiaomi' },
+  '00:07:ab': { vendor: 'Samsung', type: 'phone', label: 'Smartphone Samsung Galaxy' },
+  '00:12:47': { vendor: 'Samsung', type: 'phone', label: 'Smartphone Samsung Galaxy' },
+  '34:c0:59': { vendor: 'Samsung', type: 'phone', label: 'Smartphone Samsung Galaxy' },
+  '84:25:19': { vendor: 'Samsung', type: 'phone', label: 'Smartphone Samsung Galaxy' },
+  'bc:d1:77': { vendor: 'Samsung', type: 'phone', label: 'Smartphone Samsung Galaxy' },
+  'cc:07:ab': { vendor: 'Samsung', type: 'phone', label: 'Smartphone Samsung Galaxy' },
+  'e4:e0:c5': { vendor: 'Samsung', type: 'phone', label: 'Smartphone Samsung Galaxy' },
+  'f0:18:98': { vendor: 'Apple', type: 'phone', label: 'iPhone / iPad Apple' },
+  'bc:d1:1f': { vendor: 'Apple', type: 'phone', label: 'iPhone / iPad Apple' },
+  'a4:5e:60': { vendor: 'Apple', type: 'phone', label: 'iPhone / iPad Apple' },
+  '3c:22:fb': { vendor: 'Apple', type: 'phone', label: 'iPhone / iPad Apple' },
+  '70:ec:e4': { vendor: 'Apple', type: 'phone', label: 'iPhone / iPad Apple' },
+  'ac:bc:32': { vendor: 'Apple', type: 'phone', label: 'iPhone / iPad Apple' },
+  '2c:f0:ee': { vendor: 'Apple', type: 'phone', label: 'iPhone / iPad Apple' },
+  '68:db:ca': { vendor: 'Apple', type: 'phone', label: 'iPhone / iPad Apple' },
+  '00:18:82': { vendor: 'Huawei', type: 'phone', label: 'Smartphone Huawei' },
+  '00:1e:10': { vendor: 'Huawei', type: 'phone', label: 'Smartphone Huawei' },
+  '48:46:fb': { vendor: 'Huawei', type: 'phone', label: 'Smartphone Huawei' },
+  '70:72:3c': { vendor: 'Huawei', type: 'phone', label: 'Smartphone Huawei' },
+  '74:51:ba': { vendor: 'Oppo', type: 'phone', label: 'Smartphone Oppo' },
+  '9c:28:bf': { vendor: 'Vivo', type: 'phone', label: 'Smartphone Vivo' },
+  'b0:41:1d': { vendor: 'Realme', type: 'phone', label: 'Smartphone Realme' },
+  '20:55:31': { vendor: 'Google Pixel', type: 'phone', label: 'Smartphone Google Pixel' },
+  'e0:dc:ff': { vendor: 'OnePlus', type: 'phone', label: 'Smartphone OnePlus' },
+  'f8:cf:c5': { vendor: 'Motorola', type: 'phone', label: 'Smartphone Motorola' },
+  // PC / Workstation vendors
+  'c4:12:f5': { vendor: 'Realtek / PC', type: 'desktop', label: 'Poste de travail / PC' },
+  '00:1a:a0': { vendor: 'Dell', type: 'desktop', label: 'PC Dell Workstation' },
+  '18:66:da': { vendor: 'Dell', type: 'desktop', label: 'PC Dell' },
+  '00:25:b3': { vendor: 'HP', type: 'desktop', label: 'PC HP' },
+  '30:8d:99': { vendor: 'HP', type: 'desktop', label: 'PC HP' },
+  '00:21:cc': { vendor: 'Lenovo', type: 'desktop', label: 'PC Lenovo ThinkPad' },
+  '54:ee:75': { vendor: 'Lenovo', type: 'desktop', label: 'PC Lenovo' },
+  '00:15:5d': { vendor: 'Microsoft', type: 'desktop', label: 'Poste Windows' },
+  '00:23:18': { vendor: 'ASUS', type: 'desktop', label: 'PC ASUS' },
+  '00:1e:67': { vendor: 'Intel', type: 'desktop', label: 'PC Intel' },
+  '3c:97:0e': { vendor: 'Intel', type: 'desktop', label: 'PC Intel' },
+  // Network / Routers
+  '4c:06:17': { vendor: 'Huawei', type: 'router', label: 'Routeur / Modem Fibre' },
+  '00:72:ee': { vendor: 'Alcatel-Lucent / Nokia', type: 'router', label: 'Équipement Réseau / Passerelle' },
+  'e8:65:d4': { vendor: 'TP-Link', type: 'router', label: 'Routeur TP-Link' },
+  '50:d4:f7': { vendor: 'TP-Link', type: 'router', label: 'Routeur TP-Link' }
+};
+
+export async function discoverLanPeers(port = 4850): Promise<DiscoveredPeerInfo[]> {
   const localDeviceId = getOrCreateDeviceId();
   const interfaces = os.networkInterfaces();
   const subnets: string[] = [];
+  const localIps = new Set<string>(['127.0.0.1', '0.0.0.0']);
 
   for (const name of Object.keys(interfaces)) {
     for (const iface of interfaces[name] || []) {
       if (iface.family === 'IPv4' && !iface.internal) {
+        localIps.add(iface.address);
         const parts = iface.address.split('.');
         if (parts.length === 4) {
-          subnets.push(`${parts[0]}.${parts[1]}.${parts[2]}`);
+          const s = `${parts[0]}.${parts[1]}.${parts[2]}`;
+          if (!subnets.includes(s)) subnets.push(s);
         }
       }
     }
   }
 
-  const foundPeers: Array<{ ip: string; port: number; name: string; deviceId: string }> = [];
-  const checkIp = (ip: string): Promise<void> => {
+  const peersMap = new Map<string, DiscoveredPeerInfo>();
+
+  // Include peers that announced themselves recently
+  for (const [ip, peer] of activeAnnouncedPeers.entries()) {
+    if (!localIps.has(ip)) {
+      peersMap.set(ip, { ...peer });
+    }
+  }
+
+  // 1. Probe port 4850 on subnet (finds SuiviDesk instances & forces ARP cache populate)
+  const checkSuiviDeskPort = (ip: string): Promise<void> => {
     return new Promise((resolve) => {
       const req = http.get(
         {
           host: ip,
           port,
           path: '/api/sync/info',
-          timeout: 700
+          timeout: 450
         },
         (res) => {
           if (res.statusCode === 200) {
@@ -640,11 +752,20 @@ export async function discoverLanPeers(port = 4850): Promise<Array<{ ip: string;
               try {
                 const info = JSON.parse(data);
                 if (info?.deviceId && info.deviceId !== localDeviceId) {
-                  foundPeers.push({
+                  const isMobile =
+                    (info.workstationName || '').toLowerCase().includes('mobile') ||
+                    (info.workstationName || '').toLowerCase().includes('android') ||
+                    (info.workstationName || '').toLowerCase().includes('iphone');
+
+                  peersMap.set(ip, {
                     ip,
                     port,
-                    name: info.workstationName || 'SuiviDesk-PC',
-                    deviceId: info.deviceId
+                    name: info.workstationName || (isMobile ? 'SuiviDesk Mobile' : 'SuiviDesk-PC'),
+                    deviceId: info.deviceId,
+                    deviceType: isMobile ? 'phone' : 'desktop',
+                    isSuiviDesk: true,
+                    version: info.version || '1.5.0',
+                    statusText: 'Prêt à synchroniser'
                   });
                 }
               } catch {}
@@ -663,24 +784,139 @@ export async function discoverLanPeers(port = 4850): Promise<Array<{ ip: string;
     });
   };
 
-  // Scan common IP ranges on the primary subnet
   if (subnets.length > 0) {
     const base = subnets[0];
-    const promises: Promise<void>[] = [];
+    const probes: Promise<void>[] = [];
     for (let i = 1; i <= 254; i++) {
-      promises.push(checkIp(`${base}.${i}`));
+      probes.push(checkSuiviDeskPort(`${base}.${i}`));
     }
-    await Promise.all(promises);
+    await Promise.all(probes);
   }
 
-  // Also check localhost ports 4850-4853 for local testing
-  const localPromises = [4850, 4851, 4852].map((p) => {
-    if (p !== activePort) return checkIp(`127.0.0.1`);
-    return Promise.resolve();
-  });
-  await Promise.all(localPromises);
+  // 2. Read ARP table to detect all active devices on the local Wi-Fi / LAN
+  let arpOutput = '';
+  try {
+    arpOutput = await new Promise<string>((resolve) => {
+      exec('arp -a', { timeout: 1500 }, (err, stdout) => {
+        resolve(stdout || '');
+      });
+    });
+  } catch {}
 
-  return foundPeers;
+  const arpLines = arpOutput.split('\n');
+  const dnsLookups: Promise<void>[] = [];
+
+  for (const line of arpLines) {
+    const match = line.trim().match(/^([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)\s+([0-9a-fA-F-]+)\s+(\w+)/);
+    if (!match) continue;
+
+    const [_, ip, rawMac] = match;
+    if (localIps.has(ip) || ip.startsWith('224.') || ip.startsWith('255.') || ip.endsWith('.255')) {
+      continue;
+    }
+
+    const cleanMac = rawMac.replace(/-/g, ':').toLowerCase();
+    const prefix = cleanMac.slice(0, 8);
+    const firstByte = parseInt(cleanMac.split(':')[0], 16);
+    const isRandomizedMac = (firstByte & 0x02) !== 0;
+
+    const existing = peersMap.get(ip);
+    if (existing) {
+      existing.mac = cleanMac;
+      continue;
+    }
+
+    // Determine device classification (phone, desktop, router)
+    const isGateway = ip.endsWith('.1') || ip.endsWith('.254');
+    let deviceType: 'phone' | 'desktop' | 'router' | 'other' = 'other';
+    let name = `Appareil (${ip})`;
+    let vendor = '';
+
+    if (isGateway) {
+      deviceType = 'router';
+      name = 'Passerelle / Routeur Box Internet';
+      vendor = 'Routeur Wi-Fi';
+    } else if (KNOWN_OUIs[prefix]) {
+      const oui = KNOWN_OUIs[prefix];
+      deviceType = oui.type;
+      name = oui.label;
+      vendor = oui.vendor;
+    } else if (isRandomizedMac) {
+      // Android 10+ and iOS 14+ Private Wi-Fi MAC feature
+      deviceType = 'phone';
+      name = 'Smartphone (Android / iPhone)';
+      vendor = 'Adresse Wi-Fi privée';
+    } else {
+      deviceType = 'desktop';
+      name = `Poste Réseau (${ip})`;
+      vendor = 'Carte Réseau';
+    }
+
+    const peerInfo: DiscoveredPeerInfo = {
+      ip,
+      port: 4850,
+      name,
+      deviceId: `device-${ip.replace(/\./g, '-')}`,
+      deviceType,
+      isSuiviDesk: false,
+      mac: cleanMac,
+      vendor,
+      statusText: deviceType === 'phone' ? 'Téléphone détecté' : 'Poste détecté'
+    };
+
+    peersMap.set(ip, peerInfo);
+
+    // Reverse DNS for friendly hostname if available
+    dnsLookups.push(
+      new Promise<void>((resolve) => {
+        dns.reverse(ip, (err, hostnames) => {
+          if (!err && hostnames && hostnames.length > 0) {
+            const h = hostnames[0].toLowerCase();
+            const peer = peersMap.get(ip);
+            if (peer) {
+              if (
+                h.includes('android') ||
+                h.includes('phone') ||
+                h.includes('galaxy') ||
+                h.includes('xiaomi') ||
+                h.includes('iphone')
+              ) {
+                peer.deviceType = 'phone';
+                peer.name = hostnames[0];
+              } else if (
+                h.includes('desktop') ||
+                h.includes('laptop') ||
+                h.includes('pc') ||
+                h.includes('win')
+              ) {
+                peer.deviceType = 'desktop';
+                peer.name = hostnames[0];
+              } else if (h.includes('router') || h.includes('gateway') || h.includes('dsl')) {
+                peer.deviceType = 'router';
+                peer.name = hostnames[0];
+              } else {
+                peer.name = hostnames[0];
+              }
+            }
+          }
+          resolve();
+        });
+      })
+    );
+  }
+
+  // Allow up to 500ms for fast reverse DNS lookups
+  await Promise.race([Promise.all(dnsLookups), new Promise((r) => setTimeout(r, 500))]);
+
+  // Sort peers: Active SuiviDesk first, then Phones, Desktops, Routers
+  const sorted = Array.from(peersMap.values()).sort((a, b) => {
+    if (a.isSuiviDesk && !b.isSuiviDesk) return -1;
+    if (!a.isSuiviDesk && b.isSuiviDesk) return 1;
+    const order: Record<string, number> = { phone: 1, desktop: 2, other: 3, router: 4 };
+    return (order[a.deviceType] || 9) - (order[b.deviceType] || 9);
+  });
+
+  return sorted;
 }
 
 // -------------------------------------------------------------
