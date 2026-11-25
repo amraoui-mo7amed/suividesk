@@ -1,0 +1,9 @@
+{
+  "appId": "dz.cnas.suividesk",
+  "appName": "SuiviDesk CNAS",
+  "webDir": "dist",
+  "server": {
+    "androidScheme": "https",
+    "cleartext": true
+  }
+}

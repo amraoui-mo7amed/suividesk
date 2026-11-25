@@ -77,8 +77,8 @@ export const Navbar: React.FC<NavbarProps> = ({
           </button>
         </div>
 
-        {/* Center: The Main Navigation Tabs (Tableau de Bord / Tableau de Suivi) */}
-        <nav className="flex items-center space-x-1.5 p-1 rounded-2xl bg-[#EEF6FC] border border-[#C6DDF2]">
+        {/* Center: The Main Navigation Tabs (Desktop only, mobile uses BottomNav) */}
+        <nav className="hidden md:flex items-center space-x-1.5 p-1 rounded-2xl bg-[#EEF6FC] border border-[#C6DDF2]">
           <button
             onClick={() => {
               onNavigateHome();
@@ -112,11 +112,11 @@ export const Navbar: React.FC<NavbarProps> = ({
 
         {/* Right: Security, Sync, & About Buttons */}
         <div className="flex items-center space-x-2">
-          {/* LAN Sync Button */}
+          {/* LAN Sync Button (Desktop) */}
           {onOpenSync && (
             <button
               onClick={onOpenSync}
-              className="flex items-center space-x-1.5 px-3 py-2 rounded-xl text-xs font-bold cnas-btn-secondary active:scale-95 cursor-pointer text-[#005A9E]"
+              className="hidden md:flex items-center space-x-1.5 px-3 py-2 rounded-xl text-xs font-bold cnas-btn-secondary active:scale-95 cursor-pointer text-[#005A9E]"
               title="Synchronisation réseau local (PC à PC)"
             >
               <RefreshCw className="w-4 h-4 text-[#005A9E]" />
@@ -124,11 +124,11 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
           )}
 
-          {/* Quick Lock Button (Visible when password is set) */}
+          {/* Quick Lock Button (Desktop) */}
           {isPasswordConfigured && onLockApp && (
             <button
               onClick={onLockApp}
-              className="flex items-center space-x-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-amber-50 border border-amber-300 text-amber-800 hover:bg-amber-100 active:scale-95 cursor-pointer"
+              className="hidden md:flex items-center space-x-1.5 px-3 py-2 rounded-xl text-xs font-bold bg-amber-50 border border-amber-300 text-amber-800 hover:bg-amber-100 active:scale-95 cursor-pointer"
               title="Verrouiller la session immédiatement"
             >
               <Lock className="w-4 h-4 text-amber-600" />
@@ -136,11 +136,11 @@ export const Navbar: React.FC<NavbarProps> = ({
             </button>
           )}
 
-          {/* Security Settings Modal Button */}
+          {/* Security Settings Modal Button (Desktop) */}
           {onOpenSecurity && (
             <button
               onClick={onOpenSecurity}
-              className="flex items-center space-x-1.5 p-2 sm:px-2.5 sm:py-2 rounded-xl text-xs font-bold cnas-btn-secondary active:scale-95 cursor-pointer text-[#005A9E]"
+              className="hidden md:flex items-center space-x-1.5 p-2 sm:px-2.5 sm:py-2 rounded-xl text-xs font-bold cnas-btn-secondary active:scale-95 cursor-pointer text-[#005A9E]"
               title="Paramètres de sécurité & Mot de passe"
             >
               <ShieldCheck className="w-4 h-4 text-[#005A9E]" />
@@ -150,7 +150,7 @@ export const Navbar: React.FC<NavbarProps> = ({
           {/* About Modal Button */}
           <button
             onClick={onOpenAbout}
-            className="flex items-center space-x-1.5 px-3 py-2 rounded-xl text-xs font-bold cnas-btn-secondary active:scale-95 cursor-pointer"
+            className="flex items-center space-x-1.5 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-xl text-xs font-bold cnas-btn-secondary active:scale-95 cursor-pointer"
             title="À propos & Sauvegarde des données"
           >
             <Info className="w-4 h-4 text-[#005A9E]" />

@@ -9,6 +9,7 @@ import { TaskModal } from './components/TaskModal';
 import { LockScreenOverlay } from './components/LockScreenOverlay';
 import { SecurityModal } from './components/SecurityModal';
 import { NetworkSyncModal } from './components/NetworkSyncModal';
+import { BottomNav } from './components/BottomNav';
 import { EmployeeDetailsView } from './components/views/EmployeeDetailsView';
 import { TaskTrackingView } from './components/views/TaskTrackingView';
 import { DashboardView } from './components/views/DashboardView';
@@ -304,7 +305,7 @@ export const App: React.FC = () => {
       />
 
       {/* Main Scrollable Content */}
-      <main className="flex-1 min-h-0 overflow-y-auto p-5 sm:p-7">
+      <main className="flex-1 min-h-0 overflow-y-auto p-4 sm:p-7 pb-24 md:pb-7">
         {/* If inside Employee Details view */}
         {selectedEmployee ? (
           <EmployeeDetailsView
@@ -476,6 +477,21 @@ export const App: React.FC = () => {
           }}
         />
       )}
+
+      {/* Mobile Bottom Navigation Bar (Visible on mobile/tablet screens only) */}
+      <BottomNav
+        currentTab={currentTab}
+        onChangeTab={(tab) => {
+          setCurrentTab(tab);
+          if (tab !== 'home') {
+            setSelectedEmployeeId(null);
+          }
+        }}
+        onOpenSync={() => setIsSyncModalOpen(true)}
+        onOpenSecurity={() => setIsSecurityModalOpen(true)}
+        isPasswordConfigured={isPasswordConfigured}
+        onLockApp={() => setIsLocked(true)}
+      />
     </div>
   );
 };
