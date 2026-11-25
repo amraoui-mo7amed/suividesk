@@ -213,20 +213,20 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ employees, tasks, 
             <MapPin className="w-4 h-4 text-[#005A9E]" />
           </div>
 
-          <div className="h-64 w-full">
+          <div className="h-56 sm:h-64 w-full">
             {wilayaCounts.length === 0 ? (
               <div className="h-full flex items-center justify-center text-xs text-slate-400 italic">
                 Aucune wilaya enregistrée dans les tâches
               </div>
             ) : (
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={wilayaCounts} layout="vertical" margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+                <BarChart data={wilayaCounts} layout="vertical" margin={{ top: 5, right: 15, left: 0, bottom: 5 }}>
                   <XAxis type="number" tick={{ fontSize: 10, fill: '#475569' }} />
                   <YAxis 
                     dataKey="wilaya" 
                     type="category" 
                     tick={{ fontSize: 10, fill: '#0F172A', fontWeight: 600 }}
-                    width={130}
+                    width={95}
                   />
                   <Tooltip
                     cursor={{ fill: 'rgba(0, 104, 181, 0.08)' }}
@@ -247,8 +247,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ employees, tasks, 
         </div>
       </div>
 
-      {/* Workload per employee table */}
-      <div className="p-5 rounded-2xl cnas-panel">
+      {/* Workload per employee section */}
+      <div className="p-4 sm:p-5 rounded-2xl cnas-panel">
         <div className="flex items-center justify-between mb-3.5">
           <div className="flex items-center space-x-2">
             <Users className="w-4 h-4 text-[#005A9E]" />
@@ -258,7 +258,57 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ employees, tasks, 
           </div>
         </div>
 
-        <div className="overflow-x-auto">
+        {/* Mobile View: Responsive Cards List (md:hidden) */}
+        <div className="md:hidden space-y-2.5">
+          {employeeWorkload.length === 0 ? (
+            <div className="py-6 text-center text-xs text-slate-400 italic">
+              Aucun collaborateur enregistré
+            </div>
+          ) : (
+            employeeWorkload.map((emp) => {
+              const rate = emp.total > 0 ? Math.round((emp.traites / emp.total) * 100) : 0;
+              return (
+                <div
+                  key={emp.empId}
+                  onClick={() => onSelectEmployee && onSelectEmployee(emp.empId)}
+                  className="p-3.5 rounded-xl border border-[#C6DDF2] bg-white hover:border-[#005A9E] transition-all cursor-pointer shadow-2xs space-y-2"
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-extrabold text-xs text-[#003A6B]">{emp.name}</span>
+                    <span className="text-[11px] font-black text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md">
+                      {emp.total} tâche{emp.total > 1 ? 's' : ''}
+                    </span>
+                  </div>
+
+                  <div className="grid grid-cols-3 gap-1.5 text-center text-[10px]">
+                    <div className="py-1 px-1 rounded-lg bg-emerald-50 text-emerald-700 font-bold">
+                      <div>{emp.traites}</div>
+                      <div className="text-[8px] uppercase">Traités</div>
+                    </div>
+                    <div className="py-1 px-1 rounded-lg bg-blue-50 text-[#005A9E] font-bold">
+                      <div>{emp.enCours}</div>
+                      <div className="text-[8px] uppercase">En cours</div>
+                    </div>
+                    <div className="py-1 px-1 rounded-lg bg-rose-50 text-rose-700 font-bold">
+                      <div>{emp.nonTraites}</div>
+                      <div className="text-[8px] uppercase">Non traités</div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center space-x-2 pt-1 border-t border-slate-100">
+                    <div className="flex-1 bg-slate-100 rounded-full h-1.5 overflow-hidden">
+                      <div className="bg-[#005A9E] h-1.5 rounded-full" style={{ width: `${rate}%` }} />
+                    </div>
+                    <span className="font-bold text-[10px] text-slate-600">{rate}%</span>
+                  </div>
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {/* Desktop View: Full Data Table (hidden md:table) */}
+        <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-xs">
             <thead>
               <tr className="border-b border-[#C6DDF2] text-left text-[10px] font-bold uppercase text-[#1E3A5F]">

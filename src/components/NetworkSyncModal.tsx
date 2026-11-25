@@ -12,7 +12,10 @@ import {
   Upload,
   FileText,
   Undo2,
-  Server
+  Server,
+  Smartphone,
+  Copy,
+  Check
 } from 'lucide-react';
 import { SyncPeer, SyncPreviewData, SyncStatus, SyncResult, SyncRollbackResult } from '../types';
 
@@ -29,7 +32,10 @@ export const NetworkSyncModal: React.FC<NetworkSyncModalProps> = ({
 }) => {
   const [syncStatus, setSyncStatus] = useState<SyncStatus | null>(null);
   const [peers, setPeers] = useState<SyncPeer[]>([]);
-  const [manualIp, setManualIp] = useState('');
+  const [manualIp, setManualIp] = useState(() => {
+    return (typeof localStorage !== 'undefined' && localStorage.getItem('suividesk_last_pc_ip')) || '';
+  });
+  const [copiedIp, setCopiedIp] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
 
   const [selectedPeer, setSelectedPeer] = useState<{ ip: string; port: number; name?: string } | null>(null);
@@ -43,6 +49,8 @@ export const NetworkSyncModal: React.FC<NetworkSyncModalProps> = ({
   const [rollbackResult, setRollbackResult] = useState<SyncRollbackResult | null>(null);
 
   const [error, setError] = useState<string | null>(null);
+
+  const isMobile = Boolean(typeof window !== 'undefined' && window.electronAPI?.isMobile);
 
   const loadStatus = async () => {
     if (!window.electronAPI) return;
@@ -62,7 +70,9 @@ export const NetworkSyncModal: React.FC<NetworkSyncModalProps> = ({
       const found = await window.electronAPI.discoverLanPeers();
       setPeers(found || []);
       if (!found || found.length === 0) {
-        setError('Aucun autre poste SuiviDesk détecté sur ce réseau local. Assurez-vous que l’application est ouverte sur l’autre PC.');
+        if (!isMobile) {
+          setError('Aucun autre poste SuiviDesk détecté automatiquement sur le sous-réseau.');
+        }
       }
     } catch (err: any) {
       setError(err?.message || 'Erreur lors du scan réseau.');
@@ -79,11 +89,21 @@ export const NetworkSyncModal: React.FC<NetworkSyncModalProps> = ({
       setSyncResult(null);
       setRollbackResult(null);
       setSelectedPeer(null);
+      const savedIp = typeof localStorage !== 'undefined' ? localStorage.getItem('suividesk_last_pc_ip') : null;
+      if (savedIp) setManualIp(savedIp);
       handleScanPeers();
     }
   }, [isOpen]);
 
   if (!isOpen) return null;
+
+  const copyIpToClipboard = (ip: string) => {
+    if (navigator.clipboard) {
+      navigator.clipboard.writeText(ip);
+      setCopiedIp(true);
+      setTimeout(() => setCopiedIp(false), 2000);
+    }
+  };
 
   const handleSelectPeerAndPreview = async (ip: string, port = 4850, name?: string) => {
     if (!window.electronAPI) return;
@@ -153,43 +173,74 @@ export const NetworkSyncModal: React.FC<NetworkSyncModalProps> = ({
     <div className="fixed inset-0 z-50 bg-black/50 backdrop-blur-xs flex items-center justify-center p-4 animate-fade-in select-none">
       <div className="bg-white rounded-3xl shadow-2xl w-full max-w-2xl border-2 border-[#9EC3E6] overflow-hidden flex flex-col max-h-[90vh]">
         {/* Header */}
-        <div className="px-6 py-4 bg-gradient-to-r from-[#003A6B] to-[#005A9E] text-white flex items-center justify-between">
+        <div className="px-5 sm:px-6 py-4 bg-gradient-to-r from-[#003A6B] to-[#005A9E] text-white flex items-center justify-between">
           <div className="flex items-center space-x-3">
-            <div className="w-10 h-10 rounded-2xl bg-white/10 flex items-center justify-center border border-white/20">
+            <div className="w-10 h-10 rounded-2xl bg-white/10 flex items-center justify-center border border-white/20 flex-shrink-0">
               <RefreshCw className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h3 className="font-extrabold text-base tracking-tight leading-snug">
-                Synchronisation Réseau Local (PC à PC)
+              <h3 className="font-extrabold text-sm sm:text-base tracking-tight leading-snug">
+                {isMobile ? 'Synchronisation Mobile ↔ PC (Wi-Fi)' : 'Synchronisation Réseau Local (PC & Mobile)'}
               </h3>
-              <p className="text-[11px] text-blue-100 font-medium">
-                Partage et fusion manuelle des données en Wi-Fi / Réseau d'entreprise
+              <p className="text-[11px] text-blue-100 font-medium line-clamp-1">
+                {isMobile
+                  ? 'Échangez vos fiches et tâches terrain avec le poste PC bureau'
+                  : 'Partage et fusion sécurisée des données en Wi-Fi / Réseau local'}
               </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors cursor-pointer text-white"
+            className="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center transition-colors cursor-pointer text-white flex-shrink-0"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Sub-header / Local Station Info */}
-        <div className="px-6 py-3 bg-[#EEF6FC] border-b border-[#C6DDF2] flex items-center justify-between text-xs text-[#003A6B]">
-          <div className="flex items-center space-x-2">
-            <Server className="w-4 h-4 text-[#005A9E]" />
-            <span>
-              Poste actuel : <strong>{syncStatus?.workstationName || 'SuiviDesk-PC'}</strong> (Port: {syncStatus?.port || 4850})
+        {/* Sub-header / Local Station & IP Info */}
+        <div className="px-5 sm:px-6 py-2.5 bg-[#EEF6FC] border-b border-[#C6DDF2] flex flex-wrap items-center justify-between gap-2 text-xs text-[#003A6B]">
+          <div className="flex items-center space-x-2 min-w-0">
+            {isMobile ? (
+              <Smartphone className="w-4 h-4 text-[#005A9E] flex-shrink-0" />
+            ) : (
+              <Server className="w-4 h-4 text-[#005A9E] flex-shrink-0" />
+            )}
+            <span className="truncate">
+              Poste : <strong>{syncStatus?.workstationName || (isMobile ? 'SuiviDesk Mobile' : 'SuiviDesk-PC')}</strong>
             </span>
           </div>
-          <span className="px-2 py-0.5 rounded-md bg-[#005A9E] text-white font-black text-[10px]">
-            Mode Manuel
-          </span>
+
+          <div className="flex items-center space-x-2">
+            <span className="px-2 py-0.5 rounded-md bg-[#005A9E] text-white font-black text-[10px]">
+              Port: {syncStatus?.port || 4850}
+            </span>
+          </div>
         </div>
 
+        {/* PC Host IP helper banner (Only when on desktop PC so mobile user knows what to type) */}
+        {!isMobile && syncStatus?.localIps && syncStatus.localIps.length > 0 && (
+          <div className="mx-5 sm:mx-6 mt-3 p-3 bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs">
+            <div className="space-y-0.5">
+              <span className="text-[10px] font-black uppercase text-[#005A9E] tracking-wider block">
+                📱 Adresse IP de ce PC pour l'application Mobile Android :
+              </span>
+              <span className="text-sm font-mono font-black text-[#003A6B]">
+                {syncStatus.localIps[0]}
+              </span>
+            </div>
+            <button
+              type="button"
+              onClick={() => copyIpToClipboard(syncStatus.localIps![0])}
+              className="px-3 py-1.5 rounded-xl bg-white border border-blue-200 hover:bg-blue-50 text-[#005A9E] font-bold text-xs flex items-center space-x-1.5 self-start sm:self-auto cursor-pointer shadow-2xs"
+            >
+              {copiedIp ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5" />}
+              <span>{copiedIp ? 'Copié !' : 'Copier l’IP'}</span>
+            </button>
+          </div>
+        )}
+
         {/* Content Body */}
-        <div className="p-6 space-y-6 overflow-y-auto flex-1">
+        <div className="p-4 sm:p-6 space-y-5 overflow-y-auto flex-1">
           {error && (
             <div className="p-3.5 rounded-2xl bg-red-50 border border-red-200 text-red-700 text-xs font-bold flex items-center space-x-2">
               <AlertCircle className="w-4 h-4 flex-shrink-0 text-red-500" />
@@ -248,84 +299,103 @@ export const NetworkSyncModal: React.FC<NetworkSyncModalProps> = ({
             </div>
           )}
 
-          {/* Step 1: Scan and Discover Peers */}
+          {/* Step 1: Scan and Discover Peers or Mobile Direct Connect */}
           {!syncResult?.success && !preview && (
             <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <h4 className="text-xs font-black uppercase tracking-wider text-slate-600 flex items-center space-x-1.5">
-                  <Wifi className="w-3.5 h-3.5 text-[#005A9E]" />
-                  <span>Postes disponibles sur le réseau</span>
-                </h4>
-                <button
-                  type="button"
-                  onClick={handleScanPeers}
-                  disabled={isScanning}
-                  className="px-3 py-1.5 rounded-xl border border-[#9EC3E6] bg-[#EEF6FC] hover:bg-[#DCEBFA] text-[#003A6B] font-bold text-xs flex items-center space-x-1.5 cursor-pointer disabled:opacity-50"
-                >
-                  <RefreshCw className={`w-3.5 h-3.5 ${isScanning ? 'animate-spin' : ''}`} />
-                  <span>{isScanning ? 'Recherche...' : 'Actualiser'}</span>
-                </button>
-              </div>
-
-              {peers.length > 0 ? (
-                <div className="space-y-2">
-                  {peers.map((peer) => (
-                    <div
-                      key={peer.ip}
-                      className="p-3.5 rounded-2xl border-2 border-slate-200 hover:border-[#005A9E] bg-white transition-all flex items-center justify-between group shadow-xs"
-                    >
-                      <div className="flex items-center space-x-3">
-                        <div className="w-10 h-10 rounded-xl bg-[#EEF6FC] text-[#005A9E] flex items-center justify-center font-bold">
-                          <Laptop className="w-5 h-5" />
-                        </div>
-                        <div>
-                          <div className="text-xs font-black text-[#003A6B]">{peer.name || 'Poste distant'}</div>
-                          <div className="text-[11px] text-slate-500 font-mono">
-                            {peer.ip}:{peer.port}
-                          </div>
-                        </div>
-                      </div>
-
-                      <button
-                        type="button"
-                        onClick={() => handleSelectPeerAndPreview(peer.ip, peer.port, peer.name)}
-                        disabled={isLoadingPreview}
-                        className="px-4 py-2 rounded-xl bg-[#005A9E] hover:bg-[#004780] text-white font-bold text-xs flex items-center space-x-1.5 cursor-pointer transition-all shadow-xs"
-                      >
-                        <span>Comparer & Prévisualiser</span>
-                        <ArrowRight className="w-3.5 h-3.5" />
-                      </button>
-                    </div>
-                  ))}
+              {/* Mobile Guidance Banner */}
+              {isMobile ? (
+                <div className="p-4 rounded-2xl bg-gradient-to-br from-[#EEF6FC] to-[#E3F0FB] border-2 border-[#9EC3E6] space-y-2">
+                  <div className="flex items-center space-x-2 text-xs font-black text-[#003A6B]">
+                    <Smartphone className="w-4 h-4 text-[#005A9E]" />
+                    <span>Liaison Mobile ↔ PC Bureau (Même Wi-Fi)</span>
+                  </div>
+                  <p className="text-[11px] text-slate-700 leading-relaxed font-medium">
+                    1. Ouvrez SuiviDesk sur votre PC de bureau et cliquez sur <strong>Synchronisation</strong>.<br />
+                    2. Notez l'<strong>Adresse IP</strong> affichée dans l'encadré bleu sur l'écran du PC.<br />
+                    3. Saisissez cette adresse IP ci-dessous puis appuyez sur <strong>Se connecter & Comparer</strong>.
+                  </p>
                 </div>
               ) : (
-                !isScanning && (
-                  <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-center text-xs text-slate-500">
-                    Aucun poste SuiviDesk détecté automatiquement sur le sous-réseau.
+                <>
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-xs font-black uppercase tracking-wider text-slate-600 flex items-center space-x-1.5">
+                      <Wifi className="w-3.5 h-3.5 text-[#005A9E]" />
+                      <span>Postes disponibles sur le réseau</span>
+                    </h4>
+                    <button
+                      type="button"
+                      onClick={handleScanPeers}
+                      disabled={isScanning}
+                      className="px-3 py-1.5 rounded-xl border border-[#9EC3E6] bg-[#EEF6FC] hover:bg-[#DCEBFA] text-[#003A6B] font-bold text-xs flex items-center space-x-1.5 cursor-pointer disabled:opacity-50"
+                    >
+                      <RefreshCw className={`w-3.5 h-3.5 ${isScanning ? 'animate-spin' : ''}`} />
+                      <span>{isScanning ? 'Recherche...' : 'Actualiser'}</span>
+                    </button>
                   </div>
-                )
+
+                  {peers.length > 0 ? (
+                    <div className="space-y-2">
+                      {peers.map((peer) => (
+                        <div
+                          key={peer.ip}
+                          className="p-3.5 rounded-2xl border-2 border-slate-200 hover:border-[#005A9E] bg-white transition-all flex flex-col sm:flex-row sm:items-center justify-between gap-3 group shadow-xs"
+                        >
+                          <div className="flex items-center space-x-3">
+                            <div className="w-10 h-10 rounded-xl bg-[#EEF6FC] text-[#005A9E] flex items-center justify-center font-bold flex-shrink-0">
+                              <Laptop className="w-5 h-5" />
+                            </div>
+                            <div>
+                              <div className="text-xs font-black text-[#003A6B]">{peer.name || 'Poste distant'}</div>
+                              <div className="text-[11px] text-slate-500 font-mono">
+                                {peer.ip}:{peer.port}
+                              </div>
+                            </div>
+                          </div>
+
+                          <button
+                            type="button"
+                            onClick={() => handleSelectPeerAndPreview(peer.ip, peer.port, peer.name)}
+                            disabled={isLoadingPreview}
+                            className="px-4 py-2 rounded-xl bg-[#005A9E] hover:bg-[#004780] text-white font-bold text-xs flex items-center justify-center space-x-1.5 cursor-pointer transition-all shadow-xs self-end sm:self-auto"
+                          >
+                            <span>Comparer & Prévisualiser</span>
+                            <ArrowRight className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    !isScanning && (
+                      <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-center text-xs text-slate-500">
+                        Aucun poste SuiviDesk détecté automatiquement sur le sous-réseau.
+                      </div>
+                    )
+                  )}
+                </>
               )}
 
               {/* Manual IP input */}
               <div className="pt-3 border-t border-slate-100">
                 <label className="block text-xs font-bold text-slate-700 mb-1.5">
-                  Ou saisissez l'adresse IP de l'autre PC manuellement :
+                  {isMobile ? "Adresse IP du PC SuiviDesk (Bureau) :" : "Ou saisissez l'adresse IP manuellement :"}
                 </label>
-                <div className="flex items-center space-x-2">
+                <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
                   <input
                     type="text"
+                    inputMode="decimal"
                     value={manualIp}
                     onChange={(e) => setManualIp(e.target.value)}
                     placeholder="ex: 192.168.1.45"
-                    className="flex-1 px-3.5 py-2 rounded-xl border border-slate-300 focus:border-[#005A9E] focus:outline-none text-xs text-slate-800 font-mono"
+                    className="flex-1 px-3.5 py-2.5 rounded-xl border border-slate-300 focus:border-[#005A9E] focus:outline-none text-xs text-slate-800 font-mono"
                   />
                   <button
                     type="button"
                     disabled={!manualIp.trim() || isLoadingPreview}
-                    onClick={() => handleSelectPeerAndPreview(manualIp.trim(), 4850, manualIp.trim())}
-                    className="px-4 py-2 rounded-xl bg-[#005A9E] hover:bg-[#004780] text-white font-bold text-xs cursor-pointer disabled:opacity-40"
+                    onClick={() => handleSelectPeerAndPreview(manualIp.trim(), 4850, isMobile ? 'PC Bureau' : manualIp.trim())}
+                    className="px-5 py-2.5 rounded-xl bg-[#005A9E] hover:bg-[#004780] text-white font-bold text-xs cursor-pointer disabled:opacity-40 flex items-center justify-center space-x-2"
                   >
-                    {isLoadingPreview ? 'Connexion...' : 'Se connecter'}
+                    {isLoadingPreview && <RefreshCw className="w-3.5 h-3.5 animate-spin" />}
+                    <span>{isLoadingPreview ? 'Connexion en cours...' : 'Se connecter & Comparer'}</span>
                   </button>
                 </div>
               </div>

@@ -251,6 +251,7 @@ export interface SyncStatus {
   deviceId: string;
   workstationName: string;
   port: number;
+  localIps?: string[];
 }
 
 export interface SyncResult {
@@ -269,6 +270,7 @@ export interface SyncRollbackResult {
 declare global {
   interface Window {
     electronAPI?: {
+      isMobile?: boolean;
       // Employees
       getEmployees: () => Promise<Employee[]>;
       getEmployeeById: (id: number) => Promise<Employee | null>;

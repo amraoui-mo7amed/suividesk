@@ -158,7 +158,7 @@ export const EmployeeDetailsView: React.FC<EmployeeDetailsViewProps> = ({
         </div>
 
         {/* Right: Export Employee's Tasks + Add Task Button */}
-        <div className="flex items-center space-x-2.5 flex-shrink-0">
+        <div className="flex items-center space-x-2 w-full sm:w-auto">
           <PortalDropdown
             widthClass="w-56"
             align="right"
@@ -167,7 +167,7 @@ export const EmployeeDetailsView: React.FC<EmployeeDetailsViewProps> = ({
                 type="button"
                 onClick={toggle}
                 disabled={isExportingPdf || isExportingCsv}
-                className="flex items-center space-x-1.5 px-3.5 py-2.5 rounded-xl text-xs font-bold cnas-btn-secondary shadow-sm disabled:opacity-50 cursor-pointer"
+                className="flex-1 sm:flex-none justify-center flex items-center space-x-1.5 px-3.5 py-2.5 rounded-xl text-xs font-bold cnas-btn-secondary shadow-sm disabled:opacity-50 cursor-pointer"
               >
                 {isExportingPdf || isExportingCsv ? (
                   <Loader2 className="w-3.5 h-3.5 animate-spin text-[#005A9E]" />
@@ -214,7 +214,7 @@ export const EmployeeDetailsView: React.FC<EmployeeDetailsViewProps> = ({
           <button
             type="button"
             onClick={onAddTask}
-            className="inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl text-xs font-bold cnas-btn-primary active:scale-95 cursor-pointer"
+            className="flex-1 sm:flex-none justify-center inline-flex items-center space-x-2 px-4 py-2.5 rounded-xl text-xs font-bold cnas-btn-primary active:scale-95 cursor-pointer"
           >
             <Plus className="w-4 h-4" />
             <span>Ajouter une Tâche</span>
@@ -223,7 +223,7 @@ export const EmployeeDetailsView: React.FC<EmployeeDetailsViewProps> = ({
       </div>
 
       {/* Tabbed Navigation Bar (Default Tab = Tasks) */}
-      <div className="p-1.5 rounded-2xl cnas-panel flex flex-wrap items-center gap-1.5">
+      <div className="p-1.5 rounded-2xl cnas-panel flex flex-nowrap overflow-x-auto whitespace-nowrap items-center gap-1.5 scrollbar-none">
         <button
           type="button"
           onClick={() => setActiveTab('tasks')}

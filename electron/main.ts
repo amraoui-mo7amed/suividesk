@@ -952,10 +952,20 @@ function registerIpcHandlers() {
   // 7. Network Synchronization Handlers (PC <-> PC)
   // -------------------------------------------------------------
   ipcMain.handle('sync:getStatus', async () => {
+    const interfaces = os.networkInterfaces();
+    const localIps: string[] = [];
+    for (const name of Object.keys(interfaces)) {
+      for (const iface of interfaces[name] || []) {
+        if (iface.family === 'IPv4' && !iface.internal) {
+          localIps.push(iface.address);
+        }
+      }
+    }
     return {
       deviceId: getOrCreateDeviceId(),
       workstationName: getWorkstationName(),
-      port: 4850
+      port: 4850,
+      localIps
     };
   });
 

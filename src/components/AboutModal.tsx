@@ -92,7 +92,7 @@ export const AboutModal: React.FC<AboutModalProps> = ({
           <div className="inline-flex items-center space-x-1.5 mt-3 px-3 py-0.5 rounded-full bg-white/20 text-[11px] font-bold tracking-wide">
             <span>Version 1.5.0</span>
             <span>•</span>
-            <span>Édition Desktop</span>
+            <span>{typeof window !== 'undefined' && !window.electronAPI?.getSyncConflicts ? 'Édition Mobile Android' : 'Édition Desktop Windows'}</span>
           </div>
         </div>
 

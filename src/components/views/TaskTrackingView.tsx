@@ -219,7 +219,7 @@ export const TaskTrackingView: React.FC<TaskTrackingViewProps> = ({
         <button
           type="button"
           onClick={onAddEmployee}
-          className="inline-flex items-center space-x-1.5 px-4 py-2.5 rounded-xl text-xs font-bold cnas-btn-primary active:scale-95 cursor-pointer shadow-sm flex-shrink-0"
+          className="inline-flex items-center justify-center space-x-1.5 px-4 py-2.5 rounded-xl text-xs font-bold cnas-btn-primary active:scale-95 cursor-pointer shadow-sm w-full sm:w-auto"
         >
           <Plus className="w-4 h-4" />
           <span>Ajouter Employé</span>
@@ -252,7 +252,7 @@ export const TaskTrackingView: React.FC<TaskTrackingViewProps> = ({
         </div>
 
         {/* Actions: Filter, Sort, Export */}
-        <div className="flex flex-wrap items-center gap-2.5 overflow-visible">
+        <div className="flex flex-wrap items-center gap-2 sm:gap-2.5 overflow-visible">
           {/* Filter Dropdown */}
           <PortalDropdown
             widthClass="w-72"
@@ -329,7 +329,7 @@ export const TaskTrackingView: React.FC<TaskTrackingViewProps> = ({
           </PortalDropdown>
 
           {/* Sort Dropdown (Default Alphabetical A-Z) */}
-          <div className="w-60">
+          <div className="flex-1 sm:flex-none sm:w-60 min-w-[170px]">
             <CustomSelect
               options={SORT_OPTIONS}
               value={filters.sortBy}

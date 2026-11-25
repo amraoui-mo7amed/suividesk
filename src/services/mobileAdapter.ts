@@ -66,6 +66,7 @@ export function initMobileAdapter() {
   );
 
   window.electronAPI = {
+    isMobile: true,
     // --- Employees ---
     getEmployees: async () => {
       const list = getStored<Employee[]>(STORAGE_KEYS.EMPLOYEES, []);
@@ -319,6 +320,14 @@ export function initMobileAdapter() {
         const localEmps = getStored<Employee[]>(STORAGE_KEYS.EMPLOYEES, []);
         const localTasks = getStored<TaskItem[]>(STORAGE_KEYS.TASKS, []);
 
+        const tasksWithAgentUuid = localTasks.map((t) => {
+          const emp = localEmps.find((e) => e.id === t.agent_id);
+          return {
+            ...t,
+            agent_sync_uuid: emp?.sync_uuid || ''
+          };
+        });
+
         const res = await fetch(`http://${remoteIp}:${remotePort}/api/sync/preview`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -327,13 +336,15 @@ export function initMobileAdapter() {
             workstationName: 'SuiviDesk Mobile',
             timestamp: new Date().toISOString(),
             employees: localEmps,
-            tasks: localTasks,
+            tasks: tasksWithAgentUuid,
             documents: []
           })
         });
 
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
         const preview = await res.json();
+        // Remember IP on successful response
+        localStorage.setItem('suividesk_last_pc_ip', remoteIp);
         return { success: true, preview };
       } catch (err: any) {
         return { success: false, error: `Impossible de contacter le PC (${err?.message || 'Erreur réseau'})` };
@@ -345,6 +356,14 @@ export function initMobileAdapter() {
         const localEmps = getStored<Employee[]>(STORAGE_KEYS.EMPLOYEES, []);
         const localTasks = getStored<TaskItem[]>(STORAGE_KEYS.TASKS, []);
 
+        const tasksWithAgentUuid = localTasks.map((t) => {
+          const emp = localEmps.find((e) => e.id === t.agent_id);
+          return {
+            ...t,
+            agent_sync_uuid: emp?.sync_uuid || ''
+          };
+        });
+
         // 1. Send mobile deltas to desktop PC
         const pushRes = await fetch(`http://${remoteIp}:${remotePort}/api/sync/apply`, {
           method: 'POST',
@@ -354,7 +373,7 @@ export function initMobileAdapter() {
             workstationName: 'SuiviDesk Mobile',
             timestamp: new Date().toISOString(),
             employees: localEmps,
-            tasks: localTasks,
+            tasks: tasksWithAgentUuid,
             documents: []
           })
         });
@@ -365,7 +384,7 @@ export function initMobileAdapter() {
         if (!pullRes.ok) throw new Error(`Erreur réception: HTTP ${pullRes.status}`);
         const remoteDeltas = await pullRes.json();
 
-        // 3. Simple two-way merge on mobile
+        // 3. Bidirectional merge on mobile (LWW)
         const empMap = new Map<string, Employee>();
         localEmps.forEach((e) => { if (e.sync_uuid) empMap.set(e.sync_uuid, e); });
         for (const rem of remoteDeltas.employees || []) {
@@ -375,18 +394,30 @@ export function initMobileAdapter() {
             empMap.set(rem.sync_uuid, { ...rem, id: loc ? loc.id : (empMap.size + 1) });
           }
         }
-        setStored(STORAGE_KEYS.EMPLOYEES, Array.from(empMap.values()));
+        const mergedEmployees = Array.from(empMap.values());
+        setStored(STORAGE_KEYS.EMPLOYEES, mergedEmployees);
 
         const taskMap = new Map<string, TaskItem>();
         localTasks.forEach((t) => { if (t.sync_uuid) taskMap.set(t.sync_uuid, t); });
         for (const rem of remoteDeltas.tasks || []) {
           if (!rem.sync_uuid) continue;
           const loc = taskMap.get(rem.sync_uuid);
+          let resolvedAgentId = rem.agent_id;
+          if (rem.agent_sync_uuid) {
+            const foundEmp = mergedEmployees.find((e) => e.sync_uuid === rem.agent_sync_uuid);
+            if (foundEmp) resolvedAgentId = foundEmp.id;
+          }
           if (!loc || new Date(rem.updated_at || 0) >= new Date(loc.updated_at || 0)) {
-            taskMap.set(rem.sync_uuid, { ...rem, id: loc ? loc.id : (taskMap.size + 1) });
+            taskMap.set(rem.sync_uuid, {
+              ...rem,
+              id: loc ? loc.id : (taskMap.size + 1),
+              agent_id: resolvedAgentId
+            });
           }
         }
         setStored(STORAGE_KEYS.TASKS, Array.from(taskMap.values()));
+
+        localStorage.setItem('suividesk_last_pc_ip', remoteIp);
 
         return {
           success: true,
