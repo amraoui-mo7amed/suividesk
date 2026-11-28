@@ -311,6 +311,14 @@ export const App: React.FC = () => {
           <EmployeeDetailsView
             employee={selectedEmployee}
             tasks={employeeTasks}
+            employees={employees}
+            onTasksTransferred={() => {
+              loadEmployees();
+              loadAllTasks();
+              if (selectedEmployee) {
+                loadTasksForEmployee(selectedEmployee.id);
+              }
+            }}
             onBack={() => setSelectedEmployeeId(null)}
             onEditEmployee={(emp) => {
               setEmployeeToEdit(emp);

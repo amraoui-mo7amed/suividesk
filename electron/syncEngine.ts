@@ -301,10 +301,10 @@ export function applyIncomingDeltas(
       if (!local) {
         db.prepare(`
           INSERT INTO task_assignments (
-            agent_id, titre, sujet, personne_cible, reference_dossier, wilaya,
+            agent_id, titre, sujet, personne_cible, reference_dossier, wilaya, numero_ordre,
             priorite, date_courrier, date_distribution, date_debut, date_finale,
             etat_courrier, note, note_finale, sync_uuid, is_deleted, created_at, updated_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         `).run(
           localAgentId,
           t.titre || '',
@@ -312,6 +312,7 @@ export function applyIncomingDeltas(
           t.personne_cible || '',
           t.reference_dossier || '',
           t.wilaya || '',
+          t.numero_ordre || '',
           t.priorite || '',
           t.date_courrier || '',
           t.date_distribution || '',
@@ -355,6 +356,7 @@ export function applyIncomingDeltas(
               personne_cible = ?,
               reference_dossier = ?,
               wilaya = ?,
+              numero_ordre = ?,
               priorite = ?,
               date_courrier = ?,
               date_distribution = ?,
@@ -373,6 +375,7 @@ export function applyIncomingDeltas(
             t.personne_cible ?? local.personne_cible,
             t.reference_dossier ?? local.reference_dossier,
             t.wilaya ?? local.wilaya,
+            t.numero_ordre ?? local.numero_ordre,
             t.priorite ?? local.priorite,
             t.date_courrier ?? local.date_courrier,
             t.date_distribution ?? local.date_distribution,
@@ -793,130 +796,36 @@ export async function discoverLanPeers(port = 4850): Promise<DiscoveredPeerInfo[
     await Promise.all(probes);
   }
 
-  // 2. Read ARP table to detect all active devices on the local Wi-Fi / LAN
+  // 2. Read ARP table to enrich MAC addresses of detected SuiviDesk devices
   let arpOutput = '';
   try {
     arpOutput = await new Promise<string>((resolve) => {
-      exec('arp -a', { timeout: 1500 }, (err, stdout) => {
+      exec('arp -a', { timeout: 1000 }, (err, stdout) => {
         resolve(stdout || '');
       });
     });
   } catch {}
 
   const arpLines = arpOutput.split('\n');
-  const dnsLookups: Promise<void>[] = [];
-
   for (const line of arpLines) {
     const match = line.trim().match(/^([0-9]+\.[0-9]+\.[0-9]+\.[0-9]+)\s+([0-9a-fA-F-]+)\s+(\w+)/);
     if (!match) continue;
-
     const [_, ip, rawMac] = match;
-    if (localIps.has(ip) || ip.startsWith('224.') || ip.startsWith('255.') || ip.endsWith('.255')) {
-      continue;
-    }
-
-    const cleanMac = rawMac.replace(/-/g, ':').toLowerCase();
-    const prefix = cleanMac.slice(0, 8);
-    const firstByte = parseInt(cleanMac.split(':')[0], 16);
-    const isRandomizedMac = (firstByte & 0x02) !== 0;
-
     const existing = peersMap.get(ip);
     if (existing) {
-      existing.mac = cleanMac;
-      continue;
+      existing.mac = rawMac.replace(/-/g, ':').toLowerCase();
     }
-
-    // Determine device classification (phone, desktop, router)
-    const isGateway = ip.endsWith('.1') || ip.endsWith('.254');
-    let deviceType: 'phone' | 'desktop' | 'router' | 'other' = 'other';
-    let name = `Appareil (${ip})`;
-    let vendor = '';
-
-    if (isGateway) {
-      deviceType = 'router';
-      name = 'Passerelle / Routeur Box Internet';
-      vendor = 'Routeur Wi-Fi';
-    } else if (KNOWN_OUIs[prefix]) {
-      const oui = KNOWN_OUIs[prefix];
-      deviceType = oui.type;
-      name = oui.label;
-      vendor = oui.vendor;
-    } else if (isRandomizedMac) {
-      // Android 10+ and iOS 14+ Private Wi-Fi MAC feature
-      deviceType = 'phone';
-      name = 'Smartphone (Android / iPhone)';
-      vendor = 'Adresse Wi-Fi privée';
-    } else {
-      deviceType = 'desktop';
-      name = `Poste Réseau (${ip})`;
-      vendor = 'Carte Réseau';
-    }
-
-    const peerInfo: DiscoveredPeerInfo = {
-      ip,
-      port: 4850,
-      name,
-      deviceId: `device-${ip.replace(/\./g, '-')}`,
-      deviceType,
-      isSuiviDesk: false,
-      mac: cleanMac,
-      vendor,
-      statusText: deviceType === 'phone' ? 'Téléphone détecté' : 'Poste détecté'
-    };
-
-    peersMap.set(ip, peerInfo);
-
-    // Reverse DNS for friendly hostname if available
-    dnsLookups.push(
-      new Promise<void>((resolve) => {
-        dns.reverse(ip, (err, hostnames) => {
-          if (!err && hostnames && hostnames.length > 0) {
-            const h = hostnames[0].toLowerCase();
-            const peer = peersMap.get(ip);
-            if (peer) {
-              if (
-                h.includes('android') ||
-                h.includes('phone') ||
-                h.includes('galaxy') ||
-                h.includes('xiaomi') ||
-                h.includes('iphone')
-              ) {
-                peer.deviceType = 'phone';
-                peer.name = hostnames[0];
-              } else if (
-                h.includes('desktop') ||
-                h.includes('laptop') ||
-                h.includes('pc') ||
-                h.includes('win')
-              ) {
-                peer.deviceType = 'desktop';
-                peer.name = hostnames[0];
-              } else if (h.includes('router') || h.includes('gateway') || h.includes('dsl')) {
-                peer.deviceType = 'router';
-                peer.name = hostnames[0];
-              } else {
-                peer.name = hostnames[0];
-              }
-            }
-          }
-          resolve();
-        });
-      })
-    );
   }
 
-  // Allow up to 500ms for fast reverse DNS lookups
-  await Promise.race([Promise.all(dnsLookups), new Promise((r) => setTimeout(r, 500))]);
+  // STRICT FILTER: Only return devices that have SuiviDesk installed & running (Mobile or PC)
+  const verifiedSuiviDeskPeers = Array.from(peersMap.values()).filter((p) => p.isSuiviDesk);
 
-  // Sort peers: Active SuiviDesk first, then Phones, Desktops, Routers
-  const sorted = Array.from(peersMap.values()).sort((a, b) => {
-    if (a.isSuiviDesk && !b.isSuiviDesk) return -1;
-    if (!a.isSuiviDesk && b.isSuiviDesk) return 1;
-    const order: Record<string, number> = { phone: 1, desktop: 2, other: 3, router: 4 };
-    return (order[a.deviceType] || 9) - (order[b.deviceType] || 9);
+  return verifiedSuiviDeskPeers.sort((a, b) => {
+    // Sort SuiviDesk Mobile first, then SuiviDesk PC
+    if (a.deviceType === 'phone' && b.deviceType !== 'phone') return -1;
+    if (a.deviceType !== 'phone' && b.deviceType === 'phone') return 1;
+    return a.name.localeCompare(b.name);
   });
-
-  return sorted;
 }
 
 // -------------------------------------------------------------

@@ -12,16 +12,21 @@ import {
   Image as ImageIcon,
   Trash2,
   User,
-  Plus
+  Plus,
+  ListTodo,
+  FileCheck
 } from 'lucide-react';
 import {
   TaskItem,
   TaskDocument,
   TaskAttachmentInput,
+  TaskSubtask,
+  TaskSubtaskFile,
   Employee,
   EtatCourrier,
   TaskPriority,
   ALGERIA_WILAYAS,
+  EXTRA_WILAYAS,
   computeTreatmentDays
 } from '../types';
 import { CustomSelect } from './CustomSelect';
@@ -49,6 +54,12 @@ const ETAT_OPTIONS = [
   { value: 'traite', label: 'Traité' },
   { value: 'non_traite', label: 'Non traité' },
   { value: 'en_cours', label: 'En cours de traitement' }
+];
+
+const SUBTASK_STATUT_OPTIONS = [
+  { value: 'non_traite', label: 'Non traité' },
+  { value: 'en_cours', label: 'En cours de traitement' },
+  { value: 'traite', label: 'Traité' }
 ];
 
 function formatFileSize(bytes?: number): string {
@@ -87,11 +98,12 @@ export const TaskModal: React.FC<TaskModalProps> = ({
   // Selected agent
   const [selectedAgentId, setSelectedAgentId] = useState<number>(employeeId);
 
-  // All 13 optional fields
+  // Task fields (all optional)
   const [titre, setTitre] = useState('');
   const [sujet, setSujet] = useState('');
   const [personneCible, setPersonneCible] = useState('');
   const [referenceDossier, setReferenceDossier] = useState('');
+  const [numeroOrdre, setNumeroOrdre] = useState('');
   const [wilaya, setWilaya] = useState('');
   const [priorite, setPriorite] = useState<TaskPriority>('');
   const [dateCourrier, setDateCourrier] = useState('');
@@ -101,6 +113,9 @@ export const TaskModal: React.FC<TaskModalProps> = ({
   const [etatCourrier, setEtatCourrier] = useState<EtatCourrier>('');
   const [note, setNote] = useState('');
   const [noteFinale, setNoteFinale] = useState('');
+
+  // Sub-tasks list
+  const [subtasks, setSubtasks] = useState<TaskSubtask[]>([]);
 
   // Documents attached to this task
   const [existingDocs, setExistingDocs] = useState<TaskDocument[]>([]);
@@ -120,7 +135,8 @@ export const TaskModal: React.FC<TaskModalProps> = ({
 
   const wilayaOptions = useMemo(
     () => [
-      { value: '', label: '— Sélectionner (69 Wilayas) —' },
+      { value: '', label: '— Sélectionner (Wilayas & Structures) —' },
+      ...EXTRA_WILAYAS.map((w) => ({ value: w, label: `${w} (Structure / Entité)` })),
       ...ALGERIA_WILAYAS.map((w) => ({ value: w, label: w }))
     ],
     []
@@ -140,6 +156,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
         setSujet(taskToEdit.sujet || '');
         setPersonneCible(taskToEdit.personne_cible || '');
         setReferenceDossier(taskToEdit.reference_dossier || '');
+        setNumeroOrdre(taskToEdit.numero_ordre || '');
         setWilaya(taskToEdit.wilaya || '');
         setPriorite((taskToEdit.priorite as TaskPriority) || '');
         setDateCourrier(taskToEdit.date_courrier || '');
@@ -150,12 +167,35 @@ export const TaskModal: React.FC<TaskModalProps> = ({
         setNote(taskToEdit.note || '');
         setNoteFinale(taskToEdit.note_finale || '');
         setExistingDocs(taskToEdit.documents || []);
+        const clonedSubtasks: TaskSubtask[] = taskToEdit.subtasks
+          ? JSON.parse(JSON.stringify(taskToEdit.subtasks))
+          : [];
+        setSubtasks(
+          clonedSubtasks.map((st) => {
+            let files = Array.isArray(st.files) ? st.files : [];
+            if (files.length === 0 && st.file_name) {
+              files = [
+                {
+                  name: st.file_name,
+                  path: st.file_path,
+                  type: st.file_type,
+                  size: st.file_size
+                }
+              ];
+            }
+            return {
+              ...st,
+              files
+            };
+          })
+        );
       } else {
         setSelectedAgentId(employeeId || (employees[0] ? employees[0].id : 0));
         setTitre('');
         setSujet('');
         setPersonneCible('');
         setReferenceDossier('');
+        setNumeroOrdre('');
         setWilaya('');
         setPriorite('');
         setDateCourrier('');
@@ -166,6 +206,7 @@ export const TaskModal: React.FC<TaskModalProps> = ({
         setNote('');
         setNoteFinale('');
         setExistingDocs([]);
+        setSubtasks([]);
       }
     }
   }, [isOpen, taskToEdit, employeeId, employees]);
@@ -244,6 +285,136 @@ export const TaskModal: React.FC<TaskModalProps> = ({
     }
   };
 
+  const handleAddSubtask = () => {
+    setSubtasks((prev) => [
+      ...prev,
+      {
+        statut: 'Non traité',
+        numero_reference: '',
+        numero_ordre: '',
+        objet: '',
+        numero_decision: '',
+        date_decision: '',
+        note: '',
+        note_finale: '',
+        files: []
+      }
+    ]);
+  };
+
+  const handleRemoveSubtask = (index: number) => {
+    setSubtasks((prev) => {
+      const target = prev[index];
+      if (target.id) {
+        return prev.map((st, i) => (i === index ? { ...st, is_deleted: 1 } : st));
+      } else {
+        return prev.filter((_, i) => i !== index);
+      }
+    });
+  };
+
+  const handleUpdateSubtask = (index: number, fields: Partial<TaskSubtask>) => {
+    setSubtasks((prev) =>
+      prev.map((st, i) => (i === index ? { ...st, ...fields } : st))
+    );
+  };
+
+  const handleAddSubtaskFiles = (index: number, fileList: FileList | null) => {
+    if (!fileList || fileList.length === 0) return;
+    const filesArray = Array.from(fileList);
+
+    Promise.all(
+      filesArray.map((file) => {
+        return new Promise<TaskSubtaskFile>((resolve) => {
+          const fileWithPath = file as File & { path?: string };
+          const ext = file.name.split('.').pop() || '';
+          if (fileWithPath.path) {
+            resolve({
+              name: file.name,
+              sourcePath: fileWithPath.path,
+              path: fileWithPath.path,
+              type: ext,
+              size: file.size
+            });
+          } else {
+            const reader = new FileReader();
+            reader.onload = () => {
+              resolve({
+                name: file.name,
+                type: ext,
+                size: file.size,
+                base64: String(reader.result || '')
+              });
+            };
+            reader.onerror = () => {
+              resolve({
+                name: file.name,
+                type: ext,
+                size: file.size
+              });
+            };
+            reader.readAsDataURL(file);
+          }
+        });
+      })
+    ).then((newFiles) => {
+      setSubtasks((prev) =>
+        prev.map((st, i) => {
+          if (i !== index) return st;
+          const currentFiles = Array.isArray(st.files)
+            ? [...st.files]
+            : st.file_name
+              ? [{ name: st.file_name, path: st.file_path, type: st.file_type, size: st.file_size }]
+              : [];
+          const merged = [...currentFiles, ...newFiles];
+          return {
+            ...st,
+            files: merged,
+            file_name: merged[0]?.name || '',
+            file_path: merged[0]?.path || '',
+            file_type: merged[0]?.type || '',
+            file_size: merged[0]?.size || 0,
+            remove_file: false
+          };
+        })
+      );
+    });
+  };
+
+  const handleRemoveSubtaskFile = (subtaskIndex: number, fileIndex: number) => {
+    setSubtasks((prev) =>
+      prev.map((st, i) => {
+        if (i !== subtaskIndex) return st;
+        const currentFiles = Array.isArray(st.files)
+          ? [...st.files]
+          : st.file_name
+            ? [{ name: st.file_name, path: st.file_path, type: st.file_type, size: st.file_size }]
+            : [];
+        const updated = currentFiles.filter((_, fi) => fi !== fileIndex);
+        return {
+          ...st,
+          files: updated,
+          file_name: updated[0]?.name || '',
+          file_path: updated[0]?.path || '',
+          file_type: updated[0]?.type || '',
+          file_size: updated[0]?.size || 0,
+          remove_file: updated.length === 0
+        };
+      })
+    );
+  };
+
+  const handleOpenSubtaskFile = async (file: TaskSubtaskFile, subtaskId?: number) => {
+    if (file.path && window.electronAPI?.openFileExternal) {
+      await window.electronAPI.openFileExternal(file.path);
+      return;
+    }
+    if (subtaskId && window.electronAPI?.openSubtaskFileExternal) {
+      await window.electronAPI.openSubtaskFileExternal(subtaskId);
+      return;
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMsg('');
@@ -261,12 +432,14 @@ export const TaskModal: React.FC<TaskModalProps> = ({
       const payload: Partial<TaskItem> & {
         attachments?: TaskAttachmentInput[];
         removedDocIds?: number[];
+        subtasks?: TaskSubtask[];
       } = {
         agent_id: finalAgentId,
         titre: titre.trim(),
         sujet: sujet.trim(),
         personne_cible: personneCible.trim(),
         reference_dossier: referenceDossier.trim(),
+        numero_ordre: numeroOrdre.trim(),
         wilaya: wilaya.trim(),
         priorite,
         date_courrier: dateCourrier,
@@ -277,7 +450,8 @@ export const TaskModal: React.FC<TaskModalProps> = ({
         note: note.trim(),
         note_finale: noteFinale.trim(),
         attachments: newAttachments,
-        removedDocIds
+        removedDocIds,
+        subtasks
       };
 
       if (window.electronAPI) {
@@ -378,8 +552,8 @@ export const TaskModal: React.FC<TaskModalProps> = ({
             </div>
           </div>
 
-          {/* Row 2: Personne Cible & Référence Dossier */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          {/* Row 2: Personne Cible & Référence Dossier & Numéro d'Ordre */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <label className={labelClass}>Personne Cible (Destinataire)</label>
               <input
@@ -401,13 +575,24 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                 className={inputClass}
               />
             </div>
+
+            <div>
+              <label className={labelClass}>Numéro d'Ordre</label>
+              <input
+                type="text"
+                value={numeroOrdre}
+                onChange={(e) => setNumeroOrdre(e.target.value)}
+                placeholder="Ex: N° 042"
+                className={inputClass}
+              />
+            </div>
           </div>
 
           {/* Row 3: Wilaya & Priorité & État */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div>
               <CustomSelect
-                label="Wilaya (69 Wilayas)"
+                label="Wilaya ou Structure"
                 options={wilayaOptions}
                 value={wilaya}
                 onChange={(val) => setWilaya(val)}
@@ -608,6 +793,256 @@ export const TaskModal: React.FC<TaskModalProps> = ({
                     </button>
                   </div>
                 ))}
+              </div>
+            )}
+          </div>
+
+          {/* ======================================================== */}
+          {/* SUB-TASKS SECTION (SOUS-TÂCHES - TOUS LES CHAMPS OPTIONNELS) */}
+          {/* ======================================================== */}
+          <div className="p-3.5 rounded-xl border bg-[#F8FBFE] border-[#93C0E8] space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <ListTodo className="w-4 h-4 text-[#005A9E]" />
+                <span className="text-[11px] font-black uppercase tracking-wider text-[#003A6B]">
+                  Sous-Tâches ({subtasks.filter((s) => !s.is_deleted).length})
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={handleAddSubtask}
+                className="inline-flex items-center space-x-1 px-3 py-1.5 rounded-lg text-xs font-bold bg-[#005A9E] hover:bg-[#004A85] text-white shadow-xs transition-all cursor-pointer"
+              >
+                <Plus className="w-3.5 h-3.5" />
+                <span>Ajouter une sous-tâche</span>
+              </button>
+            </div>
+
+            {subtasks.filter((s) => !s.is_deleted).length === 0 ? (
+              <div className="p-3.5 rounded-xl bg-white border border-dashed border-[#B4D1EC] text-center text-xs text-slate-500">
+                Aucune sous-tâche ajoutée. Cliquez sur « Ajouter une sous-tâche » pour décomposer cette tâche en plusieurs sous-éléments.
+              </div>
+            ) : (
+              <div className="space-y-3 pt-1">
+                {subtasks.map((st, idx) => {
+                  if (st.is_deleted) return null;
+                  const visibleIndex = subtasks.filter((s, i) => !s.is_deleted && i <= idx).length;
+                  return (
+                    <div
+                      key={st.id ? `subtask-${st.id}` : `subtask-new-${idx}`}
+                      className="p-3.5 rounded-xl bg-white border border-[#C6DDF2] shadow-2xs space-y-3"
+                    >
+                      <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                        <span className="text-xs font-black text-[#003A6B] flex items-center space-x-1.5">
+                          <span className="w-5 h-5 rounded-md bg-[#DCEBFA] text-[#005A9E] flex items-center justify-center text-[10px]">
+                            {visibleIndex}
+                          </span>
+                          <span>Sous-tâche {st.objet ? `— ${st.objet}` : `#${visibleIndex}`}</span>
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => handleRemoveSubtask(idx)}
+                          title="Supprimer cette sous-tâche"
+                          className="p-1 rounded-md text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </button>
+                      </div>
+
+                      {/* Subtask fields: row 1 (Ref, Ordre, Objet, Statut) */}
+                      <div className="grid grid-cols-1 sm:grid-cols-4 gap-2.5">
+                        <div>
+                          <label className="text-[10px] font-bold text-slate-600 block mb-1">
+                            Numéro de référence
+                          </label>
+                          <input
+                            type="text"
+                            value={st.numero_reference || ''}
+                            onChange={(e) => handleUpdateSubtask(idx, { numero_reference: e.target.value })}
+                            placeholder="Ex: REF-001"
+                            className="w-full px-2.5 py-1.5 rounded-lg text-xs font-semibold cnas-input"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-bold text-slate-600 block mb-1">
+                            Numéro d&apos;ordre
+                          </label>
+                          <input
+                            type="text"
+                            value={st.numero_ordre || ''}
+                            onChange={(e) => handleUpdateSubtask(idx, { numero_ordre: e.target.value })}
+                            placeholder="Ex: 01"
+                            className="w-full px-2.5 py-1.5 rounded-lg text-xs font-semibold cnas-input"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-bold text-slate-600 block mb-1">
+                            Objet
+                          </label>
+                          <input
+                            type="text"
+                            value={st.objet || ''}
+                            onChange={(e) => handleUpdateSubtask(idx, { objet: e.target.value })}
+                            placeholder="Ex: Examen médical"
+                            className="w-full px-2.5 py-1.5 rounded-lg text-xs font-semibold cnas-input"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-bold text-slate-600 block mb-1">
+                            Statut
+                          </label>
+                          <input
+                            type="text"
+                            value={st.statut || ''}
+                            onChange={(e) => handleUpdateSubtask(idx, { statut: e.target.value })}
+                            placeholder="Ex: Traité, En cours..."
+                            className="w-full px-2.5 py-1.5 rounded-lg text-xs font-semibold cnas-input"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Subtask fields: row 2 (Decision number & date) */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        <div>
+                          <label className="text-[10px] font-bold text-slate-600 block mb-1">
+                            Numéro de décision
+                          </label>
+                          <input
+                            type="text"
+                            value={st.numero_decision || ''}
+                            onChange={(e) => handleUpdateSubtask(idx, { numero_decision: e.target.value })}
+                            placeholder="Ex: DEC/2026/89"
+                            className="w-full px-2.5 py-1.5 rounded-lg text-xs font-semibold cnas-input"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-bold text-slate-600 block mb-1">
+                            Date de décision
+                          </label>
+                          <input
+                            type="date"
+                            value={st.date_decision || ''}
+                            onChange={(e) => handleUpdateSubtask(idx, { date_decision: e.target.value })}
+                            className="w-full px-2.5 py-1.5 rounded-lg text-xs font-semibold cnas-input"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Subtask fields: row 3 (Note & Note Finale) */}
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                        <div>
+                          <label className="text-[10px] font-bold text-slate-600 block mb-1">
+                            Note
+                          </label>
+                          <textarea
+                            rows={1}
+                            value={st.note || ''}
+                            onChange={(e) => handleUpdateSubtask(idx, { note: e.target.value })}
+                            placeholder="Note intermédiaire..."
+                            className="w-full px-2.5 py-1.5 rounded-lg text-xs font-semibold cnas-input resize-none"
+                          />
+                        </div>
+                        <div>
+                          <label className="text-[10px] font-bold text-slate-600 block mb-1">
+                            Note finale
+                          </label>
+                          <textarea
+                            rows={1}
+                            value={st.note_finale || ''}
+                            onChange={(e) => handleUpdateSubtask(idx, { note_finale: e.target.value })}
+                            placeholder="Note de conclusion..."
+                            className="w-full px-2.5 py-1.5 rounded-lg text-xs font-semibold cnas-input resize-none"
+                          />
+                        </div>
+                      </div>
+
+                      {/* Subtask set of files (Multiple Files Attachment) */}
+                      {(() => {
+                        const filesList: TaskSubtaskFile[] = Array.isArray(st.files) && st.files.length > 0
+                          ? st.files
+                          : st.file_name
+                            ? [{ name: st.file_name, path: st.file_path, type: st.file_type, size: st.file_size }]
+                            : [];
+
+                        return (
+                          <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 space-y-2">
+                            <div className="flex items-center justify-between">
+                              <label className="text-[10px] font-bold text-[#003A6B] flex items-center space-x-1.5">
+                                <Paperclip className="w-3.5 h-3.5 text-[#005A9E]" />
+                                <span>
+                                  Pièces jointes de la sous-tâche ({filesList.length} fichier{filesList.length > 1 ? 's' : ''})
+                                </span>
+                              </label>
+
+                              <label className="inline-flex items-center space-x-1 px-2 py-0.5 rounded-md text-[10px] font-bold bg-[#EBF4FC] text-[#005A9E] hover:bg-[#DCEBFA] transition-colors cursor-pointer border border-[#93C0E8]">
+                                <Upload className="w-3 h-3" />
+                                <span>Ajouter</span>
+                                <input
+                                  type="file"
+                                  multiple
+                                  accept=".pdf,.csv,.xlsx,.xls,.png,.jpg,.jpeg,.webp,.doc,.docx"
+                                  className="hidden"
+                                  onChange={(e) => {
+                                    handleAddSubtaskFiles(idx, e.target.files);
+                                    e.target.value = '';
+                                  }}
+                                />
+                              </label>
+                            </div>
+
+                            {filesList.length > 0 ? (
+                              <div className="space-y-1 pt-0.5">
+                                {filesList.map((file, fIdx) => (
+                                  <div
+                                    key={fIdx}
+                                    className="flex items-center justify-between p-1.5 rounded-lg bg-white border border-[#B4D1EC] text-xs"
+                                  >
+                                    <div className="flex items-center space-x-1.5 min-w-0 pr-1.5">
+                                      {getFileIcon(file.name)}
+                                      <span className="font-bold text-[#003A6B] truncate text-[11px]">
+                                        {file.name}
+                                      </span>
+                                      {file.size ? (
+                                        <span className="text-[9px] font-medium text-slate-500 whitespace-nowrap">
+                                          ({formatFileSize(file.size)})
+                                        </span>
+                                      ) : null}
+                                    </div>
+
+                                    <div className="flex items-center space-x-1 flex-shrink-0">
+                                      {(file.path || st.id) && (
+                                        <button
+                                          type="button"
+                                          onClick={() => handleOpenSubtaskFile(file, st.id)}
+                                          className="inline-flex items-center space-x-0.5 px-1.5 py-0.5 rounded text-[9px] font-bold bg-[#EBF4FC] text-[#005A9E] hover:bg-[#DCEBFA] transition-colors cursor-pointer"
+                                        >
+                                          <span>Ouvrir</span>
+                                        </button>
+                                      )}
+
+                                      <button
+                                        type="button"
+                                        onClick={() => handleRemoveSubtaskFile(idx, fIdx)}
+                                        title="Supprimer ce fichier"
+                                        className="p-1 rounded text-rose-500 hover:bg-rose-50 hover:text-rose-700 transition-colors cursor-pointer"
+                                      >
+                                        <Trash2 className="w-3 h-3" />
+                                      </button>
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            ) : (
+                              <p className="text-[10px] text-slate-500 italic py-0.5">
+                                Aucun fichier joint à cette sous-tâche.
+                              </p>
+                            )}
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  );
+                })}
               </div>
             )}
           </div>

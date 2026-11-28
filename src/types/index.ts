@@ -50,10 +50,49 @@ export interface TaskAttachmentInput {
   size?: number;
 }
 
+export interface TaskSubtaskFile {
+  name: string;
+  path?: string;
+  type?: string;
+  size?: number;
+  base64?: string;
+  sourcePath?: string;
+}
+
+export interface TaskSubtask {
+  id?: number;
+  task_id?: number;
+  sync_uuid?: string;
+  numero_reference?: string;
+  numero_ordre?: string;
+  objet?: string;
+  numero_decision?: string;
+  date_decision?: string;
+  note?: string;
+  note_finale?: string;
+  statut?: string; // Text field (free form)
+  files?: TaskSubtaskFile[];
+  file_name?: string;
+  file_path?: string;
+  file_type?: string;
+  file_size?: number;
+  file_data?: {
+    name: string;
+    base64?: string;
+    sourcePath?: string;
+    size?: number;
+  } | null;
+  remove_file?: boolean;
+  created_at?: string;
+  updated_at?: string;
+  is_deleted?: number;
+}
+
 export interface TaskItem {
   id: number;
   sync_uuid?: string;
   agent_id: number | null;
+  numero_ordre?: string; // Numéro d'ordre
   titre: string; // Task Name
   sujet: string; // Task Subject
   personne_cible: string; // Target person (to whom this task is going to be done)
@@ -75,6 +114,7 @@ export interface TaskItem {
   agent_full_name?: string;
   agent_civilite?: string;
   documents?: TaskDocument[];
+  subtasks?: TaskSubtask[];
 }
 
 export type EmployeeSortOption =
@@ -107,6 +147,14 @@ export interface FilePreviewResult {
   }>;
   error?: string;
 }
+
+export const EXTRA_WILAYAS: string[] = [
+  'CMCI',
+  'Messerghine',
+  'fonctionnaire',
+  'complex',
+  'imprimerie'
+];
 
 export const ALGERIA_WILAYAS: string[] = [
   '01 - Adrar',
@@ -287,9 +335,10 @@ declare global {
       // Tasks
       getTasksByEmployee: (employeeId: number) => Promise<TaskItem[]>;
       getAllTasks: () => Promise<TaskItem[]>;
-      createTask: (data: Partial<TaskItem> & { attachments?: TaskAttachmentInput[] }) => Promise<{ success: boolean; id?: number; error?: string }>;
-      updateTask: (id: number, data: Partial<TaskItem> & { attachments?: TaskAttachmentInput[]; removedDocIds?: number[] }) => Promise<{ success: boolean; error?: string }>;
+      createTask: (data: Partial<TaskItem> & { attachments?: TaskAttachmentInput[]; subtasks?: TaskSubtask[] }) => Promise<{ success: boolean; id?: number; error?: string }>;
+      updateTask: (id: number, data: Partial<TaskItem> & { attachments?: TaskAttachmentInput[]; removedDocIds?: number[]; subtasks?: TaskSubtask[] }) => Promise<{ success: boolean; error?: string }>;
       deleteTask: (id: number) => Promise<{ success: boolean; error?: string }>;
+      transferTasksBulk: (data: { taskIds: number[]; targetAgentId: number }) => Promise<{ success: boolean; count?: number; error?: string }>;
 
       // Files & Preview
       pickDocumentFile: () => Promise<{ canceled: boolean; name?: string; sourcePath?: string }>;
@@ -298,6 +347,7 @@ declare global {
       openEmployeeFileExternal: (employeeId: number) => Promise<{ success: boolean; error?: string }>;
       getTaskDocumentPreview: (docId: number) => Promise<FilePreviewResult>;
       openTaskDocumentExternal: (docId: number) => Promise<{ success: boolean; error?: string }>;
+      openFileExternal: (filePath: string) => Promise<{ success: boolean; error?: string }>;
 
       // Exports (Employees or Tasks -> PDF / CSV)
       exportEmployeesPdf: (employees: Employee[], filterSummary?: string) => Promise<{ success: boolean; filePath?: string; error?: string }>;

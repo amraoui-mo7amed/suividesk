@@ -195,6 +195,7 @@ function initAndMigrateSchema(db: DbInstance) {
         personne_cible TEXT DEFAULT '',
         reference_dossier TEXT DEFAULT '',
         wilaya TEXT DEFAULT '',
+        numero_ordre TEXT DEFAULT '',
         priorite TEXT DEFAULT '',
         date_courrier TEXT DEFAULT '',
         date_distribution TEXT DEFAULT '',
@@ -258,6 +259,7 @@ function initAndMigrateSchema(db: DbInstance) {
         personne_cible TEXT DEFAULT '',
         reference_dossier TEXT DEFAULT '',
         wilaya TEXT DEFAULT '',
+        numero_ordre TEXT DEFAULT '',
         priorite TEXT DEFAULT '',
         date_courrier TEXT DEFAULT '',
         date_distribution TEXT DEFAULT '',
@@ -274,6 +276,9 @@ function initAndMigrateSchema(db: DbInstance) {
     `);
   } else {
     // Non-destructive additions for v1.0-v1.4 databases
+    if (!taskCols.some((c) => c.name === 'numero_ordre')) {
+      db.exec("ALTER TABLE task_assignments ADD COLUMN numero_ordre TEXT DEFAULT '';");
+    }
     if (!taskCols.some((c) => c.name === 'sync_uuid')) {
       db.exec("ALTER TABLE task_assignments ADD COLUMN sync_uuid TEXT DEFAULT '';");
     }
@@ -301,6 +306,29 @@ function initAndMigrateSchema(db: DbInstance) {
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     );
     CREATE INDEX IF NOT EXISTS idx_task_docs_task ON task_documents(task_id);
+
+    CREATE TABLE IF NOT EXISTS task_subtasks (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      task_id INTEGER REFERENCES task_assignments(id) ON DELETE CASCADE,
+      numero_reference TEXT DEFAULT '',
+      numero_ordre TEXT DEFAULT '',
+      objet TEXT DEFAULT '',
+      numero_decision TEXT DEFAULT '',
+      date_decision TEXT DEFAULT '',
+      note TEXT DEFAULT '',
+      note_finale TEXT DEFAULT '',
+      statut TEXT DEFAULT 'non_traite',
+      file_name TEXT DEFAULT '',
+      file_path TEXT DEFAULT '',
+      file_type TEXT DEFAULT '',
+      file_size INTEGER DEFAULT 0,
+      files_json TEXT DEFAULT '[]',
+      sync_uuid TEXT DEFAULT '',
+      is_deleted INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    );
+    CREATE INDEX IF NOT EXISTS idx_subtasks_task ON task_subtasks(task_id);
   `);
 
   const docCols = db.prepare("PRAGMA table_info('task_documents')").all() as Array<{ name: string }>;
@@ -309,6 +337,17 @@ function initAndMigrateSchema(db: DbInstance) {
   }
   if (!docCols.some((c) => c.name === 'is_deleted')) {
     db.exec('ALTER TABLE task_documents ADD COLUMN is_deleted INTEGER DEFAULT 0;');
+  }
+
+  const subtaskCols = db.prepare("PRAGMA table_info('task_subtasks')").all() as Array<{ name: string }>;
+  if (!subtaskCols.some((c) => c.name === 'files_json')) {
+    db.exec("ALTER TABLE task_subtasks ADD COLUMN files_json TEXT DEFAULT '[]';");
+  }
+  if (!subtaskCols.some((c) => c.name === 'sync_uuid')) {
+    db.exec("ALTER TABLE task_subtasks ADD COLUMN sync_uuid TEXT DEFAULT '';");
+  }
+  if (!subtaskCols.some((c) => c.name === 'is_deleted')) {
+    db.exec('ALTER TABLE task_subtasks ADD COLUMN is_deleted INTEGER DEFAULT 0;');
   }
 
   // 4. Retroactive UUIDv4 Generation for All Existing Data
@@ -332,6 +371,13 @@ function initAndMigrateSchema(db: DbInstance) {
       .all() as Array<{ id: number }>;
     for (const doc of emptyDocs) {
       db.prepare('UPDATE task_documents SET sync_uuid = ? WHERE id = ?').run(crypto.randomUUID(), doc.id);
+    }
+
+    const emptySubtasks = db
+      .prepare("SELECT id FROM task_subtasks WHERE sync_uuid IS NULL OR TRIM(sync_uuid) = ''")
+      .all() as Array<{ id: number }>;
+    for (const st of emptySubtasks) {
+      db.prepare('UPDATE task_subtasks SET sync_uuid = ? WHERE id = ?').run(crypto.randomUUID(), st.id);
     }
   } catch (err) {
     console.warn('Retroactive UUID assignment warning:', err);

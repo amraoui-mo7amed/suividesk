@@ -234,6 +234,74 @@ function enrichEmployeeCounts(db: ReturnType<typeof getDatabase>, emp: any) {
   };
 }
 
+function parseSubtaskRow(st: any) {
+  let parsedFiles: any[] = [];
+  try {
+    parsedFiles = JSON.parse(st.files_json || '[]');
+  } catch {}
+  if (!Array.isArray(parsedFiles) || parsedFiles.length === 0) {
+    if (st.file_name) {
+      parsedFiles = [{
+        name: st.file_name,
+        path: st.file_path,
+        type: st.file_type,
+        size: st.file_size
+      }];
+    } else {
+      parsedFiles = [];
+    }
+  }
+  return {
+    ...st,
+    files: parsedFiles
+  };
+}
+
+function processSubtaskFiles(st: any): Array<{ name: string; path: string; type: string; size: number }> {
+  const finalFiles: Array<{ name: string; path: string; type: string; size: number }> = [];
+
+  if (Array.isArray(st.files)) {
+    for (const f of st.files) {
+      if (f.sourcePath || f.base64) {
+        try {
+          const saved = saveTaskAttachment(f);
+          finalFiles.push({
+            name: saved.fileName,
+            path: saved.filePath,
+            type: saved.fileType,
+            size: saved.fileSize
+          });
+        } catch (fErr) {
+          console.error('Erreur enregistrement fichier sous-tâche:', fErr);
+        }
+      } else if (f.path) {
+        finalFiles.push({
+          name: f.name || path.basename(f.path),
+          path: f.path,
+          type: f.type || detectFileType(f.name || f.path),
+          size: f.size || 0
+        });
+      }
+    }
+  }
+
+  if (st.file_data && (!finalFiles.length || !finalFiles.some((f) => f.name === st.file_data.name))) {
+    try {
+      const saved = saveTaskAttachment(st.file_data);
+      finalFiles.push({
+        name: saved.fileName,
+        path: saved.filePath,
+        type: saved.fileType,
+        size: saved.fileSize
+      });
+    } catch (fErr) {
+      console.error('Erreur enregistrement file_data sous-tâche:', fErr);
+    }
+  }
+
+  return finalFiles;
+}
+
 function registerIpcHandlers() {
   const db = getDatabase();
 
@@ -407,7 +475,10 @@ function registerIpcHandlers() {
       duree_traitement_jours: computeTreatmentDays(r.date_debut, r.date_finale),
       documents: db
         .prepare('SELECT * FROM task_documents WHERE task_id = ? AND COALESCE(is_deleted, 0) = 0 ORDER BY id ASC')
-        .all(r.id)
+        .all(r.id),
+      subtasks: (db
+        .prepare('SELECT * FROM task_subtasks WHERE task_id = ? AND COALESCE(is_deleted, 0) = 0 ORDER BY id ASC')
+        .all(r.id) as any[]).map(parseSubtaskRow)
     }));
   });
 
@@ -427,7 +498,10 @@ function registerIpcHandlers() {
       duree_traitement_jours: computeTreatmentDays(r.date_debut, r.date_finale),
       documents: db
         .prepare('SELECT * FROM task_documents WHERE task_id = ? AND COALESCE(is_deleted, 0) = 0 ORDER BY id ASC')
-        .all(r.id)
+        .all(r.id),
+      subtasks: (db
+        .prepare('SELECT * FROM task_subtasks WHERE task_id = ? AND COALESCE(is_deleted, 0) = 0 ORDER BY id ASC')
+        .all(r.id) as any[]).map(parseSubtaskRow)
     }));
   });
 
@@ -452,10 +526,10 @@ function registerIpcHandlers() {
       const res = db
         .prepare(
           `INSERT INTO task_assignments (
-             sync_uuid, agent_id, titre, sujet, personne_cible, reference_dossier, wilaya, priorite,
+             sync_uuid, agent_id, titre, sujet, personne_cible, reference_dossier, wilaya, numero_ordre, priorite,
              date_courrier, date_distribution, date_debut, date_finale, etat_courrier, note, note_finale,
              updated_at, is_deleted
-           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, 0)`
+           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, 0)`
         )
         .run(
           taskSyncUuid,
@@ -465,6 +539,7 @@ function registerIpcHandlers() {
           (data?.personne_cible || '').trim(),
           (data?.reference_dossier || '').trim(),
           (data?.wilaya || '').trim(),
+          (data?.numero_ordre || '').trim(),
           (data?.priorite || '').trim(),
           (data?.date_courrier || '').trim(),
           (data?.date_distribution || '').trim(),
@@ -493,6 +568,39 @@ function registerIpcHandlers() {
         }
       }
 
+      // Save subtasks if provided
+      if (Array.isArray(data?.subtasks) && data.subtasks.length > 0) {
+        const insertSubtask = db.prepare(
+          `INSERT INTO task_subtasks (
+             sync_uuid, task_id, numero_reference, numero_ordre, objet,
+             numero_decision, date_decision, note, note_finale, statut,
+             file_name, file_path, file_type, file_size, files_json, updated_at, is_deleted
+           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, 0)`
+        );
+        for (const st of data.subtasks) {
+          if (st.is_deleted) continue;
+          const processedFiles = processSubtaskFiles(st);
+          const firstFile = processedFiles[0];
+          insertSubtask.run(
+            crypto.randomUUID(),
+            taskId,
+            (st.numero_reference || '').trim(),
+            (st.numero_ordre || '').trim(),
+            (st.objet || '').trim(),
+            (st.numero_decision || '').trim(),
+            (st.date_decision || '').trim(),
+            (st.note || '').trim(),
+            (st.note_finale || '').trim(),
+            (st.statut || '').trim(),
+            firstFile ? firstFile.name : '',
+            firstFile ? firstFile.path : '',
+            firstFile ? firstFile.type : '',
+            firstFile ? firstFile.size : 0,
+            JSON.stringify(processedFiles)
+          );
+        }
+      }
+
       return { success: true, id: taskId, sync_uuid: taskSyncUuid };
     } catch (err: any) {
       return { success: false, error: err.message || 'Erreur lors de l’ajout de la tâche.' };
@@ -509,6 +617,7 @@ function registerIpcHandlers() {
            personne_cible = ?,
            reference_dossier = ?,
            wilaya = ?,
+           numero_ordre = ?,
            priorite = ?,
            date_courrier = ?,
            date_distribution = ?,
@@ -526,6 +635,7 @@ function registerIpcHandlers() {
         (data?.personne_cible || '').trim(),
         (data?.reference_dossier || '').trim(),
         (data?.wilaya || '').trim(),
+        (data?.numero_ordre || '').trim(),
         (data?.priorite || '').trim(),
         (data?.date_courrier || '').trim(),
         (data?.date_distribution || '').trim(),
@@ -560,6 +670,86 @@ function registerIpcHandlers() {
         }
       }
 
+      // Handle subtasks
+      if (Array.isArray(data?.subtasks)) {
+        const insertSubtask = db.prepare(
+          `INSERT INTO task_subtasks (
+             sync_uuid, task_id, numero_reference, numero_ordre, objet,
+             numero_decision, date_decision, note, note_finale, statut,
+             file_name, file_path, file_type, file_size, files_json, updated_at, is_deleted
+           ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, CURRENT_TIMESTAMP, 0)`
+        );
+
+        for (const st of data.subtasks) {
+          if (st.id) {
+            // Existing subtask
+            if (st.is_deleted) {
+              db.prepare('UPDATE task_subtasks SET is_deleted = 1, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND task_id = ?').run(st.id, id);
+            } else {
+              const processedFiles = processSubtaskFiles(st);
+              const firstFile = processedFiles[0];
+
+              db.prepare(
+                `UPDATE task_subtasks SET
+                   numero_reference = ?,
+                   numero_ordre = ?,
+                   objet = ?,
+                   numero_decision = ?,
+                   date_decision = ?,
+                   note = ?,
+                   note_finale = ?,
+                   statut = ?,
+                   file_name = ?,
+                   file_path = ?,
+                   file_type = ?,
+                   file_size = ?,
+                   files_json = ?,
+                   updated_at = CURRENT_TIMESTAMP
+                 WHERE id = ? AND task_id = ?`
+              ).run(
+                (st.numero_reference || '').trim(),
+                (st.numero_ordre || '').trim(),
+                (st.objet || '').trim(),
+                (st.numero_decision || '').trim(),
+                (st.date_decision || '').trim(),
+                (st.note || '').trim(),
+                (st.note_finale || '').trim(),
+                (st.statut || '').trim(),
+                firstFile ? firstFile.name : '',
+                firstFile ? firstFile.path : '',
+                firstFile ? firstFile.type : '',
+                firstFile ? firstFile.size : 0,
+                JSON.stringify(processedFiles),
+                st.id,
+                id
+              );
+            }
+          } else if (!st.is_deleted) {
+            // New subtask
+            const processedFiles = processSubtaskFiles(st);
+            const firstFile = processedFiles[0];
+
+            insertSubtask.run(
+              crypto.randomUUID(),
+              id,
+              (st.numero_reference || '').trim(),
+              (st.numero_ordre || '').trim(),
+              (st.objet || '').trim(),
+              (st.numero_decision || '').trim(),
+              (st.date_decision || '').trim(),
+              (st.note || '').trim(),
+              (st.note_finale || '').trim(),
+              (st.statut || '').trim(),
+              firstFile ? firstFile.name : '',
+              firstFile ? firstFile.path : '',
+              firstFile ? firstFile.type : '',
+              firstFile ? firstFile.size : 0,
+              JSON.stringify(processedFiles)
+            );
+          }
+        }
+      }
+
       return { success: true };
     } catch (err: any) {
       return { success: false, error: err.message || 'Erreur lors de la modification de la tâche.' };
@@ -569,10 +759,32 @@ function registerIpcHandlers() {
   ipcMain.handle('tasks:delete', async (_, id: number) => {
     try {
       db.prepare('UPDATE task_documents SET is_deleted = 1, updated_at = CURRENT_TIMESTAMP WHERE task_id = ?').run(id);
+      db.prepare('UPDATE task_subtasks SET is_deleted = 1, updated_at = CURRENT_TIMESTAMP WHERE task_id = ?').run(id);
       db.prepare('UPDATE task_assignments SET is_deleted = 1, updated_at = CURRENT_TIMESTAMP WHERE id = ?').run(id);
       return { success: true };
     } catch (err: any) {
       return { success: false, error: err.message || 'Erreur lors de la suppression de la tâche.' };
+    }
+  });
+
+  ipcMain.handle('tasks:transferBulk', async (_, { taskIds, targetAgentId }: { taskIds: number[]; targetAgentId: number }) => {
+    try {
+      if (!Array.isArray(taskIds) || taskIds.length === 0) {
+        return { success: false, error: 'Aucune tâche sélectionnée pour le transfert.' };
+      }
+      const targetAgent = db.prepare('SELECT id, full_name FROM employees WHERE id = ? AND COALESCE(is_deleted, 0) = 0').get(targetAgentId);
+      if (!targetAgent) {
+        return { success: false, error: 'Collaborateur de destination introuvable.' };
+      }
+      const stmt = db.prepare('UPDATE task_assignments SET agent_id = ?, updated_at = CURRENT_TIMESTAMP WHERE id = ? AND COALESCE(is_deleted, 0) = 0');
+      let count = 0;
+      for (const tid of taskIds) {
+        const res = stmt.run(targetAgentId, tid);
+        if (Number(res.changes) > 0) count++;
+      }
+      return { success: true, count };
+    } catch (err: any) {
+      return { success: false, error: err.message || 'Erreur lors du transfert des tâches en lot.' };
     }
   });
 
@@ -751,6 +963,31 @@ function registerIpcHandlers() {
         return { success: false, error: 'Fichier introuvable sur le disque.' };
       }
       await shell.openPath(doc.file_path);
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message || 'Impossible d’ouvrir le fichier.' };
+    }
+  });
+
+  ipcMain.handle('files:openSubtaskDocumentExternal', async (_, subtaskId: number) => {
+    try {
+      const st = db.prepare('SELECT file_path FROM task_subtasks WHERE id = ?').get(subtaskId) as any;
+      if (!st?.file_path || !fs.existsSync(st.file_path)) {
+        return { success: false, error: 'Fichier introuvable sur le disque.' };
+      }
+      await shell.openPath(st.file_path);
+      return { success: true };
+    } catch (err: any) {
+      return { success: false, error: err.message || 'Impossible d’ouvrir le fichier.' };
+    }
+  });
+
+  ipcMain.handle('files:openPath', async (_, filePath: string) => {
+    try {
+      if (!filePath || !fs.existsSync(filePath)) {
+        return { success: false, error: 'Fichier introuvable sur le disque.' };
+      }
+      await shell.openPath(filePath);
       return { success: true };
     } catch (err: any) {
       return { success: false, error: err.message || 'Impossible d’ouvrir le fichier.' };

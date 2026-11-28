@@ -180,7 +180,7 @@ export function initMobileAdapter() {
       return tasks.filter((t) => t.agent_id === employeeId && !t.is_deleted);
     },
 
-    createTask: async (data: Partial<TaskItem> & { attachments?: TaskAttachmentInput[] }) => {
+    createTask: async (data: Partial<TaskItem> & { attachments?: TaskAttachmentInput[]; subtasks?: any[] }) => {
       const tasks = getStored<TaskItem[]>(STORAGE_KEYS.TASKS, []);
       const newId = tasks.length > 0 ? Math.max(...tasks.map((t) => t.id)) + 1 : 1;
       const now = new Date().toISOString();
@@ -189,6 +189,7 @@ export function initMobileAdapter() {
         id: newId,
         sync_uuid: generateUUID(),
         agent_id: data.agent_id ?? null,
+        numero_ordre: data.numero_ordre || '',
         titre: data.titre || '',
         sujet: data.sujet || '',
         personne_cible: data.personne_cible || '',
@@ -205,7 +206,27 @@ export function initMobileAdapter() {
         created_at: now,
         updated_at: now,
         is_deleted: 0,
-        documents: []
+        documents: [],
+        subtasks: Array.isArray(data.subtasks)
+          ? data.subtasks.map((st, i) => {
+              const files = Array.isArray(st.files)
+                ? st.files
+                : st.file_name
+                  ? [{ name: st.file_name, type: st.file_type, size: st.file_size }]
+                  : [];
+              return {
+                ...st,
+                id: i + 1,
+                sync_uuid: generateUUID(),
+                task_id: newId,
+                statut: st.statut || '',
+                files,
+                file_name: files[0]?.name || st.file_data?.name || st.file_name || '',
+                file_type: files[0]?.type || st.file_data?.name?.split('.').pop() || st.file_type || '',
+                file_size: files[0]?.size || st.file_data?.size || st.file_size || 0
+              };
+            })
+          : []
       };
 
       tasks.push(newTask);
@@ -213,18 +234,62 @@ export function initMobileAdapter() {
       return { success: true, id: newId };
     },
 
-    updateTask: async (id: number, data: Partial<TaskItem>) => {
+    updateTask: async (id: number, data: Partial<TaskItem> & { subtasks?: any[] }) => {
       const tasks = getStored<TaskItem[]>(STORAGE_KEYS.TASKS, []);
       const idx = tasks.findIndex((t) => t.id === id);
       if (idx === -1) return { success: false, error: 'Tâche introuvable.' };
 
+      let updatedSubtasks = tasks[idx].subtasks || [];
+      if (Array.isArray(data.subtasks)) {
+        updatedSubtasks = data.subtasks
+          .filter((st) => !st.is_deleted)
+          .map((st, i) => {
+            const files = Array.isArray(st.files)
+              ? st.files
+              : st.file_name
+                ? [{ name: st.file_name, type: st.file_type, size: st.file_size }]
+                : [];
+            return {
+              ...st,
+              id: st.id || Date.now() + i,
+              task_id: id,
+              sync_uuid: st.sync_uuid || generateUUID(),
+              statut: st.statut || '',
+              files,
+              file_name: files[0]?.name || st.file_data?.name || (st.remove_file ? '' : st.file_name) || '',
+              file_type: files[0]?.type || st.file_data?.name?.split('.').pop() || (st.remove_file ? '' : st.file_type) || '',
+              file_size: files[0]?.size || st.file_data?.size || (st.remove_file ? 0 : st.file_size) || 0
+            };
+          });
+      }
+
       tasks[idx] = {
         ...tasks[idx],
         ...data,
+        subtasks: updatedSubtasks,
         updated_at: new Date().toISOString()
       };
 
       setStored(STORAGE_KEYS.TASKS, tasks);
+      return { success: true };
+    },
+
+    transferTasksBulk: async (bulkData: { taskIds: number[]; targetAgentId: number }) => {
+      const tasks = getStored<TaskItem[]>(STORAGE_KEYS.TASKS, []);
+      const now = new Date().toISOString();
+      let count = 0;
+      const updated = tasks.map((t) => {
+        if (bulkData.taskIds.includes(t.id)) {
+          count++;
+          return { ...t, agent_id: bulkData.targetAgentId, updated_at: now };
+        }
+        return t;
+      });
+      setStored(STORAGE_KEYS.TASKS, updated);
+      return { success: true, count };
+    },
+
+    openSubtaskFileExternal: async (_subtaskId: number) => {
       return { success: true };
     },
 

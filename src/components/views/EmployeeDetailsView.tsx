@@ -12,17 +12,23 @@ import {
   ClipboardList,
   Loader2,
   User,
-  Eye
+  Eye,
+  Check,
+  ArrowRightLeft,
+  CheckSquare
 } from 'lucide-react';
 import { Employee, TaskItem } from '../../types';
 import { DocumentPreviewWidget } from '../DocumentPreviewWidget';
 import { TaskCard } from '../TaskCard';
 import { CustomSelect } from '../CustomSelect';
 import { PortalDropdown } from '../PortalDropdown';
+import { BulkTransferModal } from '../BulkTransferModal';
+import { TaskSubtasksModal } from '../TaskSubtasksModal';
 
 interface EmployeeDetailsViewProps {
   employee: Employee;
   tasks: TaskItem[];
+  employees?: Employee[];
   onBack: () => void;
   onEditEmployee: (emp: Employee) => void;
   onAddTask: () => void;
@@ -32,6 +38,7 @@ interface EmployeeDetailsViewProps {
   onExportTasksCsv: (employee: Employee, tasks: TaskItem[]) => void;
   isExportingPdf: boolean;
   isExportingCsv: boolean;
+  onTasksTransferred?: (message?: string) => void;
 }
 
 type EmployeePageTab = 'tasks' | 'details' | 'preview';
@@ -55,6 +62,7 @@ const PRIORITE_FILTER_OPTIONS = [
 export const EmployeeDetailsView: React.FC<EmployeeDetailsViewProps> = ({
   employee,
   tasks,
+  employees = [],
   onBack,
   onEditEmployee,
   onAddTask,
@@ -63,17 +71,40 @@ export const EmployeeDetailsView: React.FC<EmployeeDetailsViewProps> = ({
   onExportTasksPdf,
   onExportTasksCsv,
   isExportingPdf,
-  isExportingCsv
+  isExportingCsv,
+  onTasksTransferred
 }) => {
   // Default tab is ALWAYS the Tasks tab ('tasks')
   const [activeTab, setActiveTab] = useState<EmployeePageTab>('tasks');
   const [taskSearch, setTaskSearch] = useState('');
   const [etatFilter, setEtatFilter] = useState<string>('Tous');
   const [prioriteFilter, setPrioriteFilter] = useState<string>('Toutes');
+  const [selectedTaskIds, setSelectedTaskIds] = useState<number[]>([]);
+  const [isTransferModalOpen, setIsTransferModalOpen] = useState(false);
+  const [subtasksModalTask, setSubtasksModalTask] = useState<TaskItem | null>(null);
+  const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   useEffect(() => {
     setActiveTab('tasks');
+    setSelectedTaskIds([]);
+    setSubtasksModalTask(null);
   }, [employee.id]);
+
+  const handleToggleSelectTask = (taskId: number) => {
+    setSelectedTaskIds((prev) =>
+      prev.includes(taskId) ? prev.filter((id) => id !== taskId) : [...prev, taskId]
+    );
+  };
+
+  const handleToggleSelectAll = () => {
+    const visibleIds = filteredTasks.map((t) => t.id);
+    const allSelected = visibleIds.length > 0 && visibleIds.every((id) => selectedTaskIds.includes(id));
+    if (allSelected) {
+      setSelectedTaskIds((prev) => prev.filter((id) => !visibleIds.includes(id)));
+    } else {
+      setSelectedTaskIds((prev) => Array.from(new Set([...prev, ...visibleIds])));
+    }
+  };
 
   const displayName =
     [employee.civilite, employee.full_name || `Employé #${employee.id}`]
@@ -326,6 +357,72 @@ export const EmployeeDetailsView: React.FC<EmployeeDetailsViewProps> = ({
             </div>
           </div>
 
+          {/* Toast Notification */}
+          {toastMessage && (
+            <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-300 text-emerald-800 text-xs font-bold flex items-center justify-between shadow-sm animate-in fade-in duration-200">
+              <div className="flex items-center space-x-2">
+                <Check className="w-4 h-4 text-emerald-600" />
+                <span>{toastMessage}</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setToastMessage(null)}
+                className="text-emerald-700 hover:text-emerald-900 cursor-pointer font-bold"
+              >
+                ✕
+              </button>
+            </div>
+          )}
+
+          {/* Bulk Selection Actions Bar */}
+          {filteredTasks.length > 0 && (
+            <div className="p-3 rounded-xl bg-white border border-[#C6DDF2] shadow-2xs flex flex-wrap items-center justify-between gap-2.5">
+              <div className="flex items-center space-x-2">
+                {/* Custom Checkbox for Select All */}
+                <button
+                  type="button"
+                  onClick={handleToggleSelectAll}
+                  className={`w-6 h-6 rounded-lg border-2 flex items-center justify-center transition-all cursor-pointer ${
+                    filteredTasks.length > 0 && filteredTasks.every((t) => selectedTaskIds.includes(t.id))
+                      ? 'bg-[#005A9E] border-[#005A9E] text-white shadow-xs'
+                      : selectedTaskIds.some((id) => filteredTasks.some((t) => t.id === id))
+                        ? 'bg-[#EBF4FC] border-[#005A9E] text-[#005A9E]'
+                        : 'bg-white border-slate-300 hover:border-[#005A9E] text-transparent'
+                  }`}
+                  title="Sélectionner toutes les tâches affichées"
+                >
+                  <Check className="w-3.5 h-3.5 stroke-[3]" />
+                </button>
+                <span className="text-xs font-bold text-[#003A6B]">
+                  {selectedTaskIds.length > 0
+                    ? `${selectedTaskIds.length} tâche${selectedTaskIds.length > 1 ? 's' : ''} sélectionnée${selectedTaskIds.length > 1 ? 's' : ''} sur ${filteredTasks.length}`
+                    : 'Sélectionner tout pour transfert'}
+                </span>
+              </div>
+
+              {selectedTaskIds.length > 0 && (
+                <div className="flex items-center space-x-2">
+                  <button
+                    type="button"
+                    onClick={() => setSelectedTaskIds([])}
+                    className="px-3 py-1.5 rounded-lg text-xs font-bold bg-slate-100 hover:bg-slate-200 text-slate-700 transition-colors cursor-pointer"
+                  >
+                    Désélectionner tout
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setIsTransferModalOpen(true)}
+                    className="inline-flex items-center space-x-1.5 px-3.5 py-1.5 rounded-lg text-xs font-extrabold bg-[#005A9E] hover:bg-[#004A85] text-white shadow-xs active:scale-95 transition-all cursor-pointer"
+                  >
+                    <ArrowRightLeft className="w-3.5 h-3.5" />
+                    <span>Transférer ({selectedTaskIds.length})</span>
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
+
           {/* Tasks Cards Grid */}
           {filteredTasks.length === 0 ? (
             <div className="rounded-3xl p-10 text-center cnas-panel">
@@ -356,6 +453,9 @@ export const EmployeeDetailsView: React.FC<EmployeeDetailsViewProps> = ({
                   task={task}
                   onEditTask={onEditTask}
                   onDeleteTask={onDeleteTask}
+                  isSelected={selectedTaskIds.includes(task.id)}
+                  onToggleSelect={handleToggleSelectTask}
+                  onManageSubtasks={(t) => setSubtasksModalTask(t)}
                 />
               ))}
             </div>
@@ -489,6 +589,37 @@ export const EmployeeDetailsView: React.FC<EmployeeDetailsViewProps> = ({
           onEditTask={onEditTask}
         />
       )}
+
+      {/* Bulk Transfer Modal */}
+      <BulkTransferModal
+        isOpen={isTransferModalOpen}
+        onClose={() => setIsTransferModalOpen(false)}
+        selectedTasks={tasks.filter((t) => selectedTaskIds.includes(t.id))}
+        currentEmployee={employee}
+        employees={employees}
+        onTransferred={(msg) => {
+          setSelectedTaskIds([]);
+          setToastMessage(msg);
+          setTimeout(() => setToastMessage(null), 5000);
+          if (onTasksTransferred) {
+            onTasksTransferred(msg);
+          }
+        }}
+      />
+
+      {/* Dedicated Task Subtasks Modal */}
+      <TaskSubtasksModal
+        isOpen={Boolean(subtasksModalTask)}
+        onClose={() => setSubtasksModalTask(null)}
+        task={subtasksModalTask}
+        onSaved={(msg) => {
+          setToastMessage(msg);
+          setTimeout(() => setToastMessage(null), 5000);
+          if (onTasksTransferred) {
+            onTasksTransferred(msg);
+          }
+        }}
+      />
     </div>
   );
 };

@@ -69,19 +69,18 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ employees, tasks, 
       .slice(0, 7);
   }, [tasks]);
 
-  // Workload per employee (top 6)
+  // Workload per employee (all employees)
   const employeeWorkload = useMemo(() => {
     return employees
       .map(emp => ({
-        name: emp.full_name ? (emp.full_name.length > 15 ? emp.full_name.slice(0, 15) + '...' : emp.full_name) : `Employé #${emp.id}`,
+        name: emp.full_name ? (emp.full_name.length > 25 ? emp.full_name.slice(0, 25) + '...' : emp.full_name) : `Employé #${emp.id}`,
         empId: emp.id,
         total: emp.tasks_count || 0,
         traites: emp.traite_count || 0,
         enCours: emp.en_cours_count || 0,
         nonTraites: emp.non_traite_count || 0
       }))
-      .sort((a, b) => b.total - a.total)
-      .slice(0, 6);
+      .sort((a, b) => b.total - a.total);
   }, [employees]);
 
   return (
@@ -253,13 +252,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ employees, tasks, 
           <div className="flex items-center space-x-2">
             <Users className="w-4 h-4 text-[#005A9E]" />
             <h2 className="text-xs font-black uppercase tracking-wider text-[#003A6B]">
-              Charge de Travail par Collaborateur
+              Charge de Travail par Collaborateur ({employees.length})
             </h2>
           </div>
         </div>
 
         {/* Mobile View: Responsive Cards List (md:hidden) */}
-        <div className="md:hidden space-y-2.5">
+        <div className="md:hidden space-y-2.5 max-h-[480px] overflow-y-auto pr-1">
           {employeeWorkload.length === 0 ? (
             <div className="py-6 text-center text-xs text-slate-400 italic">
               Aucun collaborateur enregistré
@@ -308,9 +307,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({ employees, tasks, 
         </div>
 
         {/* Desktop View: Full Data Table (hidden md:table) */}
-        <div className="hidden md:block overflow-x-auto">
+        <div className="hidden md:block overflow-x-auto max-h-[480px] overflow-y-auto pr-1">
           <table className="w-full text-xs">
-            <thead>
+            <thead className="sticky top-0 bg-[#E8F2FA] z-10 shadow-2xs">
               <tr className="border-b border-[#C6DDF2] text-left text-[10px] font-bold uppercase text-[#1E3A5F]">
                 <th className="py-2.5 px-3">Collaborateur</th>
                 <th className="py-2.5 px-3 text-center">Total Tâches</th>

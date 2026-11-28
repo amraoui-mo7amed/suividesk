@@ -14,6 +14,7 @@ export const electronAPI = {
   createTask: (data: any) => ipcRenderer.invoke('tasks:create', data),
   updateTask: (id: number, data: any) => ipcRenderer.invoke('tasks:update', id, data),
   deleteTask: (id: number) => ipcRenderer.invoke('tasks:delete', id),
+  transferTasksBulk: (data: any) => ipcRenderer.invoke('tasks:transferBulk', data),
 
   // Files & Preview
   pickDocumentFile: () => ipcRenderer.invoke('files:pickDocument'),
@@ -22,6 +23,8 @@ export const electronAPI = {
   openEmployeeFileExternal: (employeeId: number) => ipcRenderer.invoke('files:openEmployeeExternal', employeeId),
   getTaskDocumentPreview: (docId: number) => ipcRenderer.invoke('files:getTaskDocumentPreview', docId),
   openTaskDocumentExternal: (docId: number) => ipcRenderer.invoke('files:openTaskDocumentExternal', docId),
+  openSubtaskFileExternal: (subtaskId: number) => ipcRenderer.invoke('files:openSubtaskDocumentExternal', subtaskId),
+  openFileExternal: (filePath: string) => ipcRenderer.invoke('files:openPath', filePath),
 
   // Exports
   exportEmployeesPdf: (employees: any[], filterSummary?: string) =>
